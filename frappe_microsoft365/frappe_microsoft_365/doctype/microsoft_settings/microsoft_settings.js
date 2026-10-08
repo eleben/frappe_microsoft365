@@ -461,6 +461,9 @@ function move_existing(frm) {
 }
 
 function show_storage_summary(frm) {
+	// Shown under the SharePoint document storage tickbox, the only capability it is about.
+	const field = frm.fields_dict.files_summary;
+	if (!field) return;
 	frappe.call({
 		method: "frappe_microsoft365.microsoft_files.storage_summary",
 		callback: (r) => {
@@ -468,11 +471,16 @@ function show_storage_summary(frm) {
 			const parts = ["Stored", "Archived", "Pending", "Failed"]
 				.filter((k) => c[k])
 				.map((k) => `${__(k)}: <b>${c[k]}</b>`);
-			if (!parts.length) return;
 			const failed = c.Failed
 				? ` · <a href="/app/file?custom_microsoft_status=Failed">${__("see failed")}</a>`
 				: "";
-			frm.dashboard.set_headline(`${__("SharePoint attachments")} — ${parts.join(" · ")}${failed}`);
+			field.$wrapper.html(
+				parts.length
+					? `<div class="small text-muted" style="margin:-4px 0 8px 24px">${__(
+							"Attachments in SharePoint"
+					  )}: ${parts.join(" · ")}${failed}</div>`
+					: ""
+			);
 		},
 	});
 }

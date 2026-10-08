@@ -15,6 +15,7 @@
   "mail_flow",
   "use_sso",
   "use_files",
+  "files_summary",
   "capabilities_help",
   "app_section",
   "tenant_id",
@@ -108,6 +109,12 @@
    "label": "SharePoint document storage",
    "default": "0",
    "description": "Store attachments of chosen DocTypes in SharePoint / Teams instead of on this server. Uses an application permission (Sites.Selected), not anyone's sign-in."
+  },
+  {
+   "fieldname": "files_summary",
+   "fieldtype": "HTML",
+   "label": "SharePoint Attachments Summary",
+   "depends_on": "use_files"
   },
   {
    "fieldname": "capabilities_help",
@@ -223,7 +230,7 @@
  ],
  "issingle": 1,
  "links": [],
- "modified": "2026-10-08 20:00:00",
+ "modified": "2026-10-08 23:00:00",
  "module": "Frappe Microsoft 365",
  "name": "Microsoft Settings",
  "owner": "Administrator",
