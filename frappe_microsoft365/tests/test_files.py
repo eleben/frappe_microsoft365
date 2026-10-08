@@ -197,6 +197,12 @@ class TestNames(BaseTestCase):
 		self.assertEqual(files.render_pattern("{name} - {customer}{nope}", doc), "PRJ-01 - ACME")
 		self.assertEqual(files.render_pattern("", doc), "PRJ-01")
 
+	def test_base_segments_follow_the_tickbox(self):
+		self.assertEqual(files.base_segments(frappe._dict(use_base_folder=1, base_folder="A/B")), ["A", "B"])
+		self.assertEqual(files.base_segments(frappe._dict(use_base_folder=0, base_folder="A/B")), [])
+		# Rows from before the tickbox existed behave as they always did.
+		self.assertEqual(files.base_segments(frappe._dict(base_folder="A")), ["A"])
+
 	def test_path_segments(self):
 		self.assertEqual(files.path_segments("Projects / 2026"), ["Projects", "2026"])
 		self.assertEqual(files.path_segments(""), [])
@@ -411,6 +417,16 @@ class TestUpload(FilesTestCase):
 		self.assertIn(files.stored_url(f.name), content)
 		self.assertEqual(published.call_args.args[0], files.MOVED_EVENT)
 		self.assertEqual(published.call_args.args[1]["old_url"], old)
+
+	def test_record_folders_can_go_straight_into_the_library(self):
+		mapping = configure(self)
+		mapping.use_base_folder = 0
+		mapping.save()
+		self.assertEqual(files.base_segments(files.mapping_for(MAPPED)), [])
+		with patch.object(files, "ensure_path", return_value={"id": "TOP", "webUrl": "https://contoso.sharepoint.com/top"}) as ensure:
+			folder = files.ensure_folder(MAPPED, self.todo.name)
+		ensure.assert_called_once_with("DRIVE", [files.safe_name(self.todo.name)])
+		self.assertEqual(folder.folder_path, files.safe_name(self.todo.name))
 
 	def test_keep_local_copy(self):
 		configure(self, files_keep_local_copy=1)

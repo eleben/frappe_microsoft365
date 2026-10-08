@@ -118,6 +118,7 @@ MAPPING_FIELDS = [
 	"reference_doctype",
 	"site_url",
 	"library",
+	"use_base_folder",
 	"base_folder",
 	"folder_pattern",
 	"site_id",
@@ -221,6 +222,13 @@ def render_pattern(pattern, doc):
 def path_segments(path):
 	"""Split a configured folder path into safe segments. ``"Projects / 2026"`` -> two."""
 	return [safe_name(part) for part in re.split(r"[/\\]", path or "") if part.strip()]
+
+
+def base_segments(row):
+	"""The base-folder path of a mapping, or none when record folders go straight into the library."""
+	if not cint(row.get("use_base_folder", 1)):
+		return []
+	return path_segments(row.base_folder)
 
 
 def encode_path(segments):
@@ -392,7 +400,7 @@ def ensure_folder(doctype, name):
 	_site_id, drive_id = resolve_drive(row)
 	doc = frappe.get_doc(doctype, name)
 	folder_name = render_pattern(row.folder_pattern, doc)
-	segments = [*path_segments(row.base_folder), folder_name]
+	segments = [*base_segments(row), folder_name]
 	item = ensure_path(drive_id, segments)
 
 	# A second job may have finished first; one record per document, whoever wins.
@@ -1258,7 +1266,7 @@ def test_connection(mapping: str | None = None):
 			)
 			continue
 
-		segments = path_segments(row.base_folder)
+		segments = base_segments(row)
 		try:
 			base = ensure_path(drive_id, segments) if segments else _get_by_path(drive_id, [])
 			probe = _create_folder(drive_id, base["id"], PROBE_FOLDER)
@@ -1291,7 +1299,11 @@ def test_connection(mapping: str | None = None):
 	if not findings:
 		findings.append(
 			finding(
-				"files.none", WARN, _("No DocType is mapped yet"), "", _("Create a Microsoft Drive Mapping for the DocType.")
+				"files.none",
+				WARN,
+				_("No DocType is mapped yet"),
+				"",
+				_("Create a Microsoft Drive Mapping for the DocType."),
 			)
 		)
 	return {"findings": findings}

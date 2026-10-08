@@ -104,7 +104,8 @@ with the channel's files in a folder of that site's `Documents` library. To use 
 
 - **Site URL**: the channel's own site. In Teams, open the channel's *Files* tab → *Open in
   SharePoint*.
-- **Library**: `Documents`. **Base Folder**: the channel name.
+- **Library**: `Documents`. Untick **Group record folders in a base folder**, so each record's
+  folder sits directly in the channel's Files tab rather than inside an extra folder.
 - **Grant the app that site.** A grant on the parent team's site does not reach a private
   channel's site. The mapping's Site Grant Script names that site.
 

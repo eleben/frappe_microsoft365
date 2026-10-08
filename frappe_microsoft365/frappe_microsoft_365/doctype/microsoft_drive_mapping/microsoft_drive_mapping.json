@@ -11,6 +11,7 @@
   "site_url",
   "library",
   "column_break_where",
+  "use_base_folder",
   "base_folder",
   "folder_pattern",
   "resolved_section",
@@ -58,11 +59,20 @@
    "fieldtype": "Column Break"
   },
   {
-   "description": "Path inside the library. For a Teams channel this is the channel name, e.g. Projects. Created if missing; blank means the library root.",
+   "default": "1",
+   "description": "On: record folders go inside the Base Folder below. For a standard Teams channel keep this on and use the channel name, since that is the channel's folder. Off: each record's folder goes straight into the library. For a private or shared channel, which has a site of its own, that is the channel's Files tab, with no extra folder in between.",
+   "fieldname": "use_base_folder",
+   "fieldtype": "Check",
+   "label": "Group record folders in a base folder"
+  },
+  {
+   "depends_on": "eval:doc.use_base_folder",
+   "description": "Path inside the library, created if missing. For a standard Teams channel this is the channel name, e.g. Projects. Nested paths like Projects/2026 work.",
    "fieldname": "base_folder",
    "fieldtype": "Data",
    "in_list_view": 1,
-   "label": "Base Folder"
+   "label": "Base Folder",
+   "mandatory_depends_on": "eval:doc.use_base_folder"
   },
   {
    "default": "{name}",
@@ -102,7 +112,7 @@
    "link_fieldname": "reference_doctype"
   }
  ],
- "modified": "2026-10-08 12:00:00",
+ "modified": "2026-10-08 13:00:00",
  "module": "Frappe Microsoft 365",
  "name": "Microsoft Drive Mapping",
  "naming_rule": "By fieldname",
