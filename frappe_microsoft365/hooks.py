@@ -162,7 +162,7 @@ doctype_js = {
 # Uninstallation
 # ------------
 
-# before_uninstall = "frappe_microsoft365.uninstall.before_uninstall"
+before_uninstall = "frappe_microsoft365.uninstall.before_uninstall"
 # after_uninstall = "frappe_microsoft365.uninstall.after_uninstall"
 
 # Integration Setup

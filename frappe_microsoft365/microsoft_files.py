@@ -1488,3 +1488,82 @@ def _site_fix(message):
 			"Check the site URL and the library name; Teams channel files are in the library called Documents."
 		)
 	return ""
+
+
+# --- bringing files back (uninstall) -------------------------------------------------------
+
+
+def bring_back(file_name):
+	"""Put a moved file back on this server and point its File row at it again.
+
+	The reverse of upload_file, for uninstall: once this app is gone nothing can answer
+	open_file, so every attachment that lives in SharePoint has to come home first. The
+	SharePoint copy is left where it is. Returns the local URL the file now has.
+	"""
+	import hashlib
+
+	file_doc = frappe.get_doc("File", file_name)
+	if file_doc.get("custom_microsoft_status") != STORED:
+		return file_doc.file_url
+
+	old_url = file_doc.file_url
+	target = file_doc.get("custom_microsoft_local_url")
+	prefix = "/private/files/" if file_doc.is_private else "/files/"
+	if not target or ".." in target.split("/"):
+		target = prefix + safe_file_name(file_doc.file_name or file_doc.name)
+	path = local_path(target)
+
+	if not os.path.exists(path):
+		if frappe.db.exists("File", {"file_url": target, "name": ["!=", file_doc.name]}):
+			# The name is taken by another attachment; never write over someone else's file.
+			target = prefix + f"{file_doc.name}-" + safe_file_name(file_doc.file_name or "file")
+			path = local_path(target)
+		resp = graph.graph_request(
+			"GET",
+			f"/drives/{file_doc.custom_microsoft_drive_id}/items/{file_doc.custom_microsoft_item_id}/content",
+			APP_ONLY,
+			raw=True,
+			stream=True,
+			timeout=120,
+		)
+		tmp = path + ".part"
+		try:
+			# The path comes from local_path() of a URL checked for ".." above.
+			with open(tmp, "wb") as fh:  # nosemgrep
+				for chunk in resp.iter_content(DOWNLOAD_CHUNK_BYTES):
+					fh.write(chunk)
+			os.replace(tmp, path)
+		finally:
+			resp.close()
+			if os.path.exists(tmp):
+				os.remove(tmp)
+
+	digest = hashlib.md5()
+	with open(path, "rb") as fh:  # nosemgrep
+		for chunk in iter(lambda: fh.read(DOWNLOAD_CHUNK_BYTES), b""):
+			digest.update(chunk)
+
+	frappe.db.set_value(
+		"File",
+		file_doc.name,
+		{"file_url": target, "content_hash": digest.hexdigest(), "custom_microsoft_status": None},
+		update_modified=False,
+	)
+	for comment in frappe.get_all(
+		"Comment",
+		filters={
+			"reference_doctype": file_doc.attached_to_doctype,
+			"reference_name": file_doc.attached_to_name,
+			"comment_type": "Attachment",
+			"content": ["like", f"%{old_url}%"],
+		},
+		fields=["name", "content"],
+	):
+		frappe.db.set_value(
+			"Comment",
+			comment.name,
+			"content",
+			comment.content.replace(old_url, target),
+			update_modified=False,
+		)
+	return target

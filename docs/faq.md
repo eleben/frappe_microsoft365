@@ -130,11 +130,19 @@ explained first. See
 
 ## What happens if I uninstall it?
 
+The site is left as it was before the app, with nothing to clean up by hand:
+
+- Attachments that were moved to SharePoint are downloaded back to the server first and their
+  links restored, so every attachment still opens. The SharePoint copies stay in SharePoint. If
+  any file cannot be brought back, the uninstall stops and lists them rather than leave a broken
+  attachment (see [SharePoint document storage](sharepoint-files.md#uninstalling)).
+- Every custom field the app added to `Event` and `File` is deleted, and its column dropped.
+- `Microsoft Settings`, `Microsoft Calendar` connections, SharePoint mappings and folder links go
+  with the app, as do its cached tokens.
+
 Your mail setup keeps working. The `Connected App`, `Social Login Key` and `Email Account`
 records are Frappe's own doctypes, this app never modified how mail is sent, and none of that is
-removed with it. `Microsoft Settings` and your `Microsoft Calendar` connections go with the app.
-The custom fields it adds to `Event` carry no module, so a plain uninstall leaves them behind —
-delete them by hand if you want them gone.
+removed. `bench uninstall-app --dry-run` reports what would happen and changes nothing.
 
 ---
 

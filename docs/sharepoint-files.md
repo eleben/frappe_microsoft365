@@ -124,6 +124,18 @@ the DocType's roles accordingly if the channel is private for a reason.
 Uploads run on the `long` queue, so the site needs a background worker. That is always the case
 on Frappe Cloud. **Run Diagnostics** checks it.
 
+## Uninstalling
+
+`bench --site <site> uninstall-app frappe_microsoft365` first brings every moved attachment back
+from SharePoint to the server and points its File row at it again, then deletes the custom fields
+the app added and drops their columns. The copies in SharePoint are not touched.
+
+If a file cannot be brought back (usually the connection is broken), the uninstall stops before
+removing anything and lists the files. Fix the connection and run it again; files already brought
+back stay back. A site that has lost SharePoint access for good can set
+`"microsoft365_uninstall_skip_restore": 1` in `site_config.json` to uninstall anyway; those
+attachments then exist only in SharePoint.
+
 ## Using it from code
 
 `frappe_microsoft365.microsoft_files` is plain Python that other apps can call:

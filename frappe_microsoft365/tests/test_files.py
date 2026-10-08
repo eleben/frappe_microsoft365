@@ -618,6 +618,87 @@ class TestSettings(BaseTestCase):
 		self.assertEqual(boot.microsoft365_files_doctypes, [MAPPED])
 
 
+class TestUninstall(FilesTestCase):
+	def _moved(self, content=None):
+		f = self.attach(content=content, name="report.csv")
+		old = f.file_url
+		files.upload_file(f.name)
+		self.assertFalse(os.path.exists(files.local_path(old)))
+		return f, old
+
+	def _download(self, content):
+		resp = MagicMock()
+		resp.iter_content.return_value = iter([content])
+		return resp
+
+	def test_a_moved_file_comes_back_to_its_old_place(self):
+		body = f"bring me home {frappe.generate_hash()}".encode()
+		f, old = self._moved(body)
+		with patch.object(graph, "graph_request", return_value=self._download(body)):
+			self.assertEqual(files.bring_back(f.name), old)
+		row = frappe.db.get_value(
+			"File", f.name, ["file_url", "custom_microsoft_status", "content_hash"], as_dict=True
+		)
+		self.assertEqual(row.file_url, old)
+		self.assertIsNone(row.custom_microsoft_status)
+		self.assertTrue(row.content_hash)
+		with open(files.local_path(old), "rb") as fh:
+			self.assertEqual(fh.read(), body)
+		comment = frappe.get_all(
+			"Comment",
+			filters={"reference_name": self.todo.name, "comment_type": "Attachment"},
+			pluck="content",
+		)
+		self.assertTrue(any(old in c for c in comment))
+		self.assertFalse(any(files.stored_url(f.name) in c for c in comment))
+
+	def test_a_kept_local_copy_is_reused_without_downloading(self):
+		configure(self, files_keep_local_copy=1)
+		f = self.attach(name="kept.csv")
+		old = f.file_url
+		files.upload_file(f.name)
+		with patch.object(graph, "graph_request") as gr:
+			self.assertEqual(files.bring_back(f.name), old)
+		gr.assert_not_called()
+
+	def test_uninstall_stops_if_a_file_cannot_come_back(self):
+		from frappe_microsoft365 import uninstall
+
+		self._moved()
+		with (
+			patch.object(files, "bring_back", side_effect=MsGraphError("offline")),
+			patch.object(frappe.db, "rollback"),
+		):
+			with self.assertRaises(frappe.ValidationError):
+				uninstall.restore_files()
+
+	def test_dry_run_changes_nothing(self):
+		from frappe_microsoft365 import uninstall
+
+		self._moved()
+
+		def remove_app(dry_run=True):
+			uninstall.before_uninstall()
+
+		with patch.object(files, "bring_back") as back, patch.object(uninstall, "clear_caches") as clear:
+			remove_app()
+		back.assert_not_called()
+		clear.assert_not_called()
+		self.assertTrue(frappe.db.has_column("File", "custom_microsoft_status"))
+
+	def test_every_custom_field_is_known_to_uninstall(self):
+		from frappe_microsoft365.setup import app_custom_fields
+
+		known = app_custom_fields()
+		for doctype, fieldnames in known.items():
+			for fieldname in fieldnames:
+				self.assertTrue(
+					frappe.db.exists("Custom Field", {"dt": doctype, "fieldname": fieldname}), fieldname
+				)
+		self.assertIn("custom_microsoft_status", known["File"])
+		self.assertIn("custom_microsoft_event_id", known["Event"])
+
+
 class TestOnDemand(FilesTestCase):
 	def setUp(self):
 		super().setUp()

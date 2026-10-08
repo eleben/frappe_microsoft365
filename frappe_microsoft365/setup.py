@@ -28,7 +28,7 @@ def setup():
 	create_file_custom_fields()
 
 
-def create_event_custom_fields():
+def create_event_custom_fields(only_definitions=False):
 	"""Add Microsoft-sync custom fields to the Event doctype (idempotent)."""
 	custom_fields = {
 		"Event": [
@@ -132,7 +132,7 @@ def create_event_custom_fields():
 				# needs width but no index.
 				"length": 1000,
 				"description": "Use the Join Meeting button above.",
-							"depends_on": "eval:doc.custom_sync_with_microsoft_calendar",
+				"depends_on": "eval:doc.custom_sync_with_microsoft_calendar",
 			},
 			{
 				"fieldname": "custom_microsoft_web_link",
@@ -144,7 +144,7 @@ def create_event_custom_fields():
 				# Small Text rather than Data: webLink can be very long and, unlike the event
 				# id, is never looked up, so there is no index to preserve.
 				"description": "Also available as a button above.",
-							"depends_on": "eval:doc.custom_sync_with_microsoft_calendar",
+				"depends_on": "eval:doc.custom_sync_with_microsoft_calendar",
 			},
 			{
 				"fieldname": "custom_microsoft_organizer",
@@ -158,7 +158,7 @@ def create_event_custom_fields():
 				# varchar(140) default. Nothing queries this column, so the width is free.
 				"length": 254,
 				"description": "The Microsoft account that organized this event.",
-							"depends_on": "eval:doc.custom_sync_with_microsoft_calendar",
+				"depends_on": "eval:doc.custom_sync_with_microsoft_calendar",
 			},
 			{
 				"fieldname": "custom_microsoft_my_response",
@@ -172,7 +172,7 @@ def create_event_custom_fields():
 				# leading blank covers an event Microsoft has said nothing about yet.
 				"options": "\nnone\norganizer\ntentativelyAccepted\naccepted\ndeclined\nnotResponded",
 				"description": "Your reply to this invitation, as Microsoft has it.",
-							"depends_on": "eval:doc.custom_sync_with_microsoft_calendar",
+				"depends_on": "eval:doc.custom_sync_with_microsoft_calendar",
 			},
 			{
 				"fieldname": "custom_microsoft_online_meeting_id",
@@ -257,17 +257,19 @@ def create_event_custom_fields():
 				# unlike custom_microsoft_event_id nothing ever queries this column, so there is
 				# no index to keep inside InnoDB's 3072-byte key limit.
 				"description": "Everyone invited, with their reply. Refreshed by each sync.",
-							"depends_on": "eval:doc.custom_sync_with_microsoft_calendar",
+				"depends_on": "eval:doc.custom_sync_with_microsoft_calendar",
 			},
 		]
 	}
+	if only_definitions:
+		return custom_fields
 	create_custom_fields(custom_fields, ignore_validate=True)
 
 
 FILE_STATUS_OPTIONS = "\nPending\nStored\nArchived\nFailed"
 
 
-def create_file_custom_fields():
+def create_file_custom_fields(only_definitions=False):
 	"""Fields on File that record where an attachment lives in SharePoint (idempotent).
 
 	Custom fields rather than a side table: every reader of File — permissions, copies made by
@@ -351,4 +353,15 @@ def create_file_custom_fields():
 			},
 		]
 	}
+	if only_definitions:
+		return custom_fields
 	create_custom_fields(custom_fields, ignore_validate=True)
+
+
+def app_custom_fields():
+	"""Every custom field this app adds, as ``{doctype: [fieldname, ...]}``. Used by uninstall."""
+	out = {}
+	for definitions in (create_event_custom_fields(True), create_file_custom_fields(True)):
+		for doctype, fields in definitions.items():
+			out.setdefault(doctype, []).extend(f["fieldname"] for f in fields)
+	return out
