@@ -1209,7 +1209,8 @@ def manual_setup_steps(settings=None):
 			"where": _(
 				"Entra admin center > App registrations > your app > API permissions > Add a "
 				"permission > Microsoft Graph > Application permissions > Sites.Selected, then Grant "
-				"admin consent. Sites.Selected on its own reaches no site at all: a SharePoint admin "
+				"admin consent (under Microsoft Graph, not the SharePoint API, which has a permission of the "
+				"same name). Sites.Selected on its own reaches no site at all: a SharePoint admin "
 				"then grants the app 'write' on each site, with the script from Troubleshoot > "
 				"SharePoint Site Grant Script."
 			),

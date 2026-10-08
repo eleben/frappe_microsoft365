@@ -1129,7 +1129,9 @@ def test_connection():
 					_(
 						"In Entra > App registrations > this app > API permissions, add Microsoft Graph > "
 						"Application permissions > Sites.Selected (Application, not Delegated), then click "
-						"Grant admin consent so its status reads Granted. Run this test again a minute later."
+						"Grant admin consent so its status reads Granted. It must be listed under Microsoft "
+						"Graph: the SharePoint API has a permission with the same name that this app cannot "
+						"use. Run this test again a minute later."
 					),
 					SITES_SELECTED_DOC,
 				)
@@ -1216,7 +1218,8 @@ def _site_fix(message):
 	if "401" in message:
 		return _(
 			"SharePoint did not accept the app's token. Check that Sites.Selected is an Application "
-			"permission with admin consent granted, then wait a minute and test again."
+			"permission under Microsoft Graph (not under SharePoint) with admin consent granted, then "
+			"wait a minute and test again."
 		)
 	if "403" in message or "accessDenied" in message or "Forbidden" in message:
 		return _(

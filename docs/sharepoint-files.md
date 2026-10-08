@@ -61,6 +61,9 @@ asks for `Sites.ReadWrite.All`.
 1. **Entra admin center → App registrations →** the app already used by this integration **→ API
    permissions → Add a permission → Microsoft Graph → Application permissions →
    `Sites.Selected` → Grant admin consent.**
+   Pick it under **Microsoft Graph**. The **SharePoint** API lists a permission with the same name,
+   and that one does nothing for Graph calls: the symptom is a 401 `generalException` on the first
+   request.
 2. Make sure **Tenant ID** in Microsoft Settings is the directory (tenant) ID, not `common`.
    Client-credential sign-in has no `/common` endpoint.
 3. In Microsoft Settings, tick **SharePoint document storage** and add a row under **Where Files
