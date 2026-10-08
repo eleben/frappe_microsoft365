@@ -397,6 +397,23 @@ class TestUpload(FilesTestCase):
 		self.assertEqual(folder.item_id, "FOLDER")
 		self.assertEqual(folder.folder_path, f"Projects/{files.safe_name(self.todo.name)}")
 
+	def test_attachment_comment_link_follows_the_move(self):
+		f = self.attach()
+		old = f.file_url
+		comment = frappe.get_all(
+			"Comment",
+			filters={"reference_name": self.todo.name, "comment_type": "Attachment"},
+			fields=["name", "content"],
+		)
+		self.assertTrue(comment and old in comment[0].content)
+		with patch.object(frappe, "publish_realtime") as published:
+			files.upload_file(f.name)
+		content = frappe.db.get_value("Comment", comment[0].name, "content")
+		self.assertNotIn(old, content)
+		self.assertIn(files.stored_url(f.name), content)
+		self.assertEqual(published.call_args.args[0], files.MOVED_EVENT)
+		self.assertEqual(published.call_args.args[1]["old_url"], old)
+
 	def test_keep_local_copy(self):
 		configure(self, files_keep_local_copy=1)
 		f = self.attach()

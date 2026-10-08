@@ -159,6 +159,28 @@ frappe.provide("frappe_microsoft365.files");
 
 	frappe_microsoft365.files.Panel = Panel;
 
+	// A file is moved a few seconds after it is attached, by which time the sidebar already
+	// shows its old /private/files link. The server announces the move on the document's
+	// realtime room; swap the URL in place so the link keeps working without a reload.
+	frappe.realtime.on("microsoft365_file_moved", (data) => {
+		const frm = window.cur_frm;
+		if (
+			!data ||
+			!frm ||
+			frm.doctype !== data.doctype ||
+			cstr(frm.docname) !== cstr(data.docname)
+		) {
+			return;
+		}
+		const info = (frappe.model.docinfo[frm.doctype] || {})[frm.docname] || {};
+		(info.attachments || []).forEach((a) => {
+			if (a.name === data.file || a.file_url === data.old_url) a.file_url = data.file_url;
+		});
+		frm.attachments && frm.attachments.refresh();
+		frm.timeline && frm.timeline.refresh();
+		frm.microsoft365_files_panel && frm.microsoft365_files_panel.load();
+	});
+
 	$(document).on("form-refresh", (_e, frm) => {
 		if (!frm || frm.is_new() || !mapped(frm.doctype)) return;
 		// The dashboard is rebuilt on every refresh, taking any earlier panel with it.

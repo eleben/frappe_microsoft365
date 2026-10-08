@@ -519,8 +519,58 @@ def upload_file(file_name):
 	# The row must point at SharePoint, durably, before the copy on disk is removed.
 	frappe.db.commit()  # nosemgrep
 
+	if local_url:
+		_repoint_links(file_doc, local_url, values["file_url"])
 	if local_url and not keep_local:
 		_remove_local_copy(local_url)
+
+
+MOVED_EVENT = "microsoft365_file_moved"
+
+
+def _repoint_links(file_doc, old_url, new_url):
+	"""Make links that already show the old /private/files URL point at SharePoint.
+
+	The move happens a moment after the upload, by which time the form that made it has already
+	drawn its sidebar, and the timeline has an "Attachment" comment whose link is frozen HTML.
+	Both would lead to a Forbidden page once the disk copy is gone.
+	"""
+	try:
+		for comment in frappe.get_all(
+			"Comment",
+			filters={
+				"reference_doctype": file_doc.attached_to_doctype,
+				"reference_name": file_doc.attached_to_name,
+				"comment_type": "Attachment",
+				"content": ["like", f"%{old_url}%"],
+			},
+			fields=["name", "content"],
+		):
+			frappe.db.set_value(
+				"Comment",
+				comment.name,
+				"content",
+				comment.content.replace(f"'{old_url}'", f"'{new_url}'").replace(
+					f'"{old_url}"', f'"{new_url}"'
+				),
+				update_modified=False,
+			)
+		frappe.db.commit()  # nosemgrep: same transaction rule as the move itself
+	except Exception:
+		frappe.log_error(title=_("Microsoft 365: could not update attachment links"))
+
+	frappe.publish_realtime(
+		MOVED_EVENT,
+		{
+			"doctype": file_doc.attached_to_doctype,
+			"docname": file_doc.attached_to_name,
+			"file": file_doc.name,
+			"file_url": new_url,
+			"old_url": old_url,
+		},
+		doctype=file_doc.attached_to_doctype,
+		docname=file_doc.attached_to_name,
+	)
 
 
 def _upload(file_doc, folder):
