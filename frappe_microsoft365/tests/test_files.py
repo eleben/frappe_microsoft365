@@ -602,6 +602,14 @@ class TestDoctorFiles(BaseTestCase):
 		self.assertIn('$appId = "APP-ID"', script)
 		self.assertNotIn('FullControl")', script.split("Connect-MgGraph", 1)[1].split("\n", 1)[1])
 
+	def test_explain_recognises_the_sharepoint_401(self):
+		out = doctor.explain_error(
+			"Microsoft Graph GET /sites/contoso.sharepoint.com:/sites/Example failed (401): "
+			"generalException: General exception while processing"
+		)
+		self.assertTrue(out["matched"])
+		self.assertIn("Microsoft Graph", out["detail"])
+
 	def test_setup_guide_lists_sites_selected(self):
 		summary = doctor._capability_summary({"use_files": 1})
 		self.assertEqual(summary[-1]["permissions"], ["Sites.Selected (Application)"])

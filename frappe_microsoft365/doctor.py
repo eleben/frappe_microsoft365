@@ -965,7 +965,20 @@ def error_patterns():
 	(
 		r"AADSTS7000215|invalid_client",
 		_("Client secret is wrong or expired"),
-		_("Azure client secrets expire. Create a new one and paste it into Microsoft Settings."),
+		_(
+			"Azure client secrets expire, and after you leave Certificates & secrets the Value column "
+			"only shows a masked prefix. Create a new secret, copy its Value before leaving the page, "
+			"and paste it into Microsoft Settings."
+		),
+	),
+	(
+		r"/sites/.*\(401\)|401\).*generalException",
+		_("SharePoint accepted the sign-in but the token has no site permission"),
+		_(
+			"The app token carries no Microsoft Graph site permission. Add Sites.Selected under "
+			"Microsoft Graph > Application permissions (not under the SharePoint API, which has a "
+			"permission of the same name) and grant admin consent."
+		),
 	),
 	(
 		r"AADSTS700016|application with identifier",
