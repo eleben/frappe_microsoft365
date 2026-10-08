@@ -216,6 +216,16 @@ def parse_site_url(url):
 	return host, f"/{match.group(1).lower()}/{match.group(2)}" if match else ""
 
 
+def _forget_message():
+	"""Drop the message an expected Graph error queued for the browser.
+
+	graph_request raises through frappe.throw, which also queues the text for the desk to show.
+	When the caller expects the error — "does this folder exist yet?" — and handles it, that
+	queued text would still pop up as a red "itemNotFound" box over a perfectly good result.
+	"""
+	frappe.clear_last_message()
+
+
 # --- locating the library ----------------------------------------------------------------
 
 
@@ -278,6 +288,7 @@ def _get_by_path(drive_id, segments, parent_id=None):
 			"GET", path, APP_ONLY, params={"$select": "id,name,folder,webUrl,parentReference"}
 		)
 	except MsGraphNotFound:
+		_forget_message()
 		return None
 
 
@@ -296,6 +307,7 @@ def _create_folder(drive_id, parent_id, name):
 			},
 		)
 	except MsGraphConflict:
+		_forget_message()
 		existing = _get_by_path(drive_id, [name], parent_id=parent_id)
 		if existing:
 			return existing
@@ -464,6 +476,7 @@ def upload_file(file_name):
 		try:
 			item = _upload(file_doc, folder)
 		except MsGraphNotFound:
+			_forget_message()
 			# Someone deleted or moved the record's folder out of the library. Recreate it once.
 			_forget_folder(folder)
 			folder = ensure_folder(file_doc.attached_to_doctype, file_doc.attached_to_name)
@@ -713,6 +726,7 @@ def on_file_trash(doc, method=None):
 	try:
 		graph.graph_request("DELETE", f"/drives/{doc.custom_microsoft_drive_id}/items/{item_id}", APP_ONLY)
 	except MsGraphNotFound:
+		_forget_message()
 		pass
 	except Exception:
 		# Removing the attachment in Frappe must not fail because SharePoint was unreachable.
@@ -915,6 +929,7 @@ def open_file(file: str, download: int = 0):
 			download=cint(download),
 		)
 	except MsGraphNotFound:
+		_forget_message()
 		# Gone from SharePoint. A kept local copy is still the file; serve that instead.
 		if local and os.path.exists(local_path(local)):
 			if local.startswith("/private/files/"):
@@ -974,6 +989,7 @@ def list_folder(doctype: str, name: str, subfolder: str | None = None):
 			APP_ONLY,
 		)
 	except MsGraphNotFound:
+		_forget_message()
 		if subfolder:
 			raise
 		_forget_folder(folder)
@@ -1043,6 +1059,7 @@ def _assert_inside(folder, item_id):
 				params={"$select": "id,parentReference"},
 			)
 		except MsGraphNotFound:
+			_forget_message()
 			break
 		parent = item.get("parentReference") or {}
 		if parent.get("driveId") and parent["driveId"] != folder.drive_id:

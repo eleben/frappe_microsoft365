@@ -550,6 +550,19 @@ class TestSettings(BaseTestCase):
 		self.assertEqual(boot.microsoft365_files_doctypes, [MAPPED])
 
 
+class TestQuietLookups(BaseTestCase):
+	def test_an_expected_404_leaves_no_message_for_the_desk(self):
+		def not_found(*args, **kwargs):
+			frappe.throw(
+				"Microsoft Graph GET /drives/d/root:/Projects: failed (404): itemNotFound", MsGraphNotFound
+			)
+
+		frappe.local.message_log = []
+		with patch.object(graph, "graph_request", side_effect=not_found):
+			self.assertIsNone(files._get_by_path("d", ["Projects"]))
+		self.assertEqual(frappe.local.message_log, [])
+
+
 class TestTokenRoles(BaseTestCase):
 	@staticmethod
 	def _token(payload):
