@@ -167,7 +167,8 @@
    "fieldname": "files_mappings",
    "fieldtype": "Table",
    "label": "Where Files Go",
-   "options": "Microsoft Drive Mapping"
+   "options": "Microsoft Drive Mapping",
+   "description": "One row per DocType. Edit DocType, site and folder right in the table, or open a row for every option. Rows are saved with these settings: click Save at the top when you are done."
   },
   {
    "fieldname": "files_options_column",
@@ -222,7 +223,7 @@
  ],
  "issingle": 1,
  "links": [],
- "modified": "2026-10-07 00:00:00",
+ "modified": "2026-10-08 00:00:00",
  "module": "Frappe Microsoft 365",
  "name": "Microsoft Settings",
  "owner": "Administrator",
