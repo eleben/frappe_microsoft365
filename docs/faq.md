@@ -284,8 +284,17 @@ project's own README — check them for current scope.
   B2C, with configurable OAuth and JWKS endpoints.
 
 This app's scope is Outlook calendar two-way sync, Teams meetings, RSVP, transcripts and
-recordings, plus setup and diagnostics for Outlook mail OAuth and Microsoft sign-in. For
-group-to-role provisioning or SharePoint groups, those apps are where to look.
+recordings, storing a DocType's attachments in SharePoint or a Teams channel
+([SharePoint document storage](sharepoint-files.md)), plus setup and diagnostics for Outlook
+mail OAuth and Microsoft sign-in. For group-to-role provisioning, or for creating and managing
+Microsoft 365 Groups and their sites, those apps are where to look.
+
+## Can attachments be stored in SharePoint or Teams instead of on the server?
+
+Yes. Map the DocType under Microsoft Settings → Document Storage; each record gets a folder in
+the site or channel you choose, attachments move there, and files added from Teams appear on the
+record. It needs the `Sites.Selected` application permission and a per-site grant, never access
+to the whole tenant. See [SharePoint document storage](sharepoint-files.md).
 
 ## Can another app call this one instead of writing its own Graph code?
 

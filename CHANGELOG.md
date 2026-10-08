@@ -1,5 +1,28 @@
 # Changelog
 
+## Unreleased — SharePoint document storage
+
+### Added
+
+- **Document Storage** in Microsoft Settings: map any DocType to a SharePoint site, library and
+  base folder (a Teams channel's Files tab is just that). Each record gets its own folder; new
+  attachments are moved there by a background job and keep opening from the form, and the copy
+  on disk is removed unless *Keep a local copy* is ticked. Large files go through resumable
+  upload sessions. Failed moves are marked on the File and retried hourly.
+- **Files in Microsoft 365** panel on mapped forms: the folder's contents, including files added
+  from Teams or SharePoint, opened through Frappe with the record's own read permission.
+- **App-only Graph calls**: `graph_request(..., microsoft_graph.APP_ONLY)` uses the client
+  credentials flow, with the token cached encrypted per site. Document storage needs the
+  `Sites.Selected` application permission and a per-site grant — never tenant-wide
+  `Sites.ReadWrite.All`.
+- Doctor: Document Storage checks, a *Test SharePoint Connection* that proves write access per
+  mapping, and a *SharePoint Site Grant Script* that grants the app only the mapped sites.
+- *Move Existing Attachments* queues files attached before a DocType was mapped. Optional
+  archiving of linked attachments, SSRF-guarded to public addresses.
+
+Nothing is deleted from SharePoint unless *Remove from SharePoint when the attachment is
+deleted* is ticked, and then only to the site recycle bin. Deleting a record keeps its folder.
+
 ## Unreleased — modular setup
 
 ### Added

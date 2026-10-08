@@ -25,6 +25,7 @@ def after_migrate():
 def setup():
 	"""Everything this app needs present on a site. Idempotent, safe to re-run."""
 	create_event_custom_fields()
+	create_file_custom_fields()
 
 
 def create_event_custom_fields():
@@ -257,6 +258,95 @@ def create_event_custom_fields():
 				# no index to keep inside InnoDB's 3072-byte key limit.
 				"description": "Everyone invited, with their reply. Refreshed by each sync.",
 							"depends_on": "eval:doc.custom_sync_with_microsoft_calendar",
+			},
+		]
+	}
+	create_custom_fields(custom_fields, ignore_validate=True)
+
+
+FILE_STATUS_OPTIONS = "\nPending\nStored\nArchived\nFailed"
+
+
+def create_file_custom_fields():
+	"""Fields on File that record where an attachment lives in SharePoint (idempotent).
+
+	Custom fields rather than a side table: every reader of File — permissions, copies made by
+	create_attachment_copy, the File list — already carries them along, and a moved File is still
+	just a File.
+	"""
+	custom_fields = {
+		"File": [
+			{
+				"fieldname": "custom_microsoft_section",
+				"fieldtype": "Section Break",
+				"label": "Microsoft 365",
+				"insert_after": "uploaded_to_google_drive"
+				if frappe.db.has_column("File", "uploaded_to_google_drive")
+				else "content_hash",
+				"collapsible": 1,
+				"depends_on": "eval:doc.custom_microsoft_status",
+			},
+			{
+				"fieldname": "custom_microsoft_status",
+				"fieldtype": "Select",
+				"label": "SharePoint Status",
+				"options": FILE_STATUS_OPTIONS,
+				"insert_after": "custom_microsoft_section",
+				"read_only": 1,
+				"in_standard_filter": 1,
+				"search_index": 1,
+				"description": "Stored: moved to SharePoint and opened from there. Archived: a link whose target was copied to SharePoint. Pending / Failed: retried hourly.",
+			},
+			{
+				"fieldname": "custom_microsoft_web_url",
+				"fieldtype": "Data",
+				"label": "Open in SharePoint",
+				"options": "URL",
+				"insert_after": "custom_microsoft_status",
+				"read_only": 1,
+			},
+			{
+				"fieldname": "custom_microsoft_error",
+				"fieldtype": "Small Text",
+				"label": "Last SharePoint Error",
+				"insert_after": "custom_microsoft_web_url",
+				"read_only": 1,
+				"depends_on": "eval:doc.custom_microsoft_status == 'Failed'",
+			},
+			{
+				"fieldname": "custom_microsoft_column",
+				"fieldtype": "Column Break",
+				"insert_after": "custom_microsoft_error",
+			},
+			{
+				"fieldname": "custom_microsoft_drive_id",
+				"fieldtype": "Data",
+				"label": "Drive ID",
+				"insert_after": "custom_microsoft_column",
+				"read_only": 1,
+			},
+			{
+				"fieldname": "custom_microsoft_item_id",
+				"fieldtype": "Data",
+				"label": "Item ID",
+				"insert_after": "custom_microsoft_drive_id",
+				"read_only": 1,
+				"search_index": 1,
+			},
+			{
+				"fieldname": "custom_microsoft_local_url",
+				"fieldtype": "Data",
+				"label": "Local Copy",
+				"insert_after": "custom_microsoft_item_id",
+				"read_only": 1,
+				"description": "Set only when Keep a local copy is on; served if the SharePoint copy disappears.",
+			},
+			{
+				"fieldname": "custom_microsoft_attempts",
+				"fieldtype": "Int",
+				"label": "Upload Attempts",
+				"insert_after": "custom_microsoft_local_url",
+				"read_only": 1,
 			},
 		]
 	}

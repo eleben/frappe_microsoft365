@@ -1,0 +1,111 @@
+{
+ "actions": [],
+ "autoname": "hash",
+ "creation": "2026-10-07 00:00:00",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "reference_doctype",
+  "reference_name",
+  "folder_name",
+  "column_break_ref",
+  "web_url",
+  "microsoft_section",
+  "drive_id",
+  "item_id",
+  "column_break_ms",
+  "folder_path"
+ ],
+ "fields": [
+  {
+   "fieldname": "reference_doctype",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Reference DocType",
+   "options": "DocType",
+   "read_only": 1,
+   "reqd": 1,
+   "search_index": 1
+  },
+  {
+   "fieldname": "reference_name",
+   "fieldtype": "Dynamic Link",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Reference Name",
+   "options": "reference_doctype",
+   "read_only": 1,
+   "reqd": 1,
+   "search_index": 1
+  },
+  {
+   "fieldname": "folder_name",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Folder Name",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_ref",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "web_url",
+   "fieldtype": "Data",
+   "label": "Open in SharePoint",
+   "options": "URL",
+   "read_only": 1
+  },
+  {
+   "collapsible": 1,
+   "fieldname": "microsoft_section",
+   "fieldtype": "Section Break",
+   "label": "Microsoft"
+  },
+  {
+   "fieldname": "drive_id",
+   "fieldtype": "Data",
+   "label": "Drive ID",
+   "read_only": 1
+  },
+  {
+   "description": "Stable across renames and moves inside the library, so the link survives someone tidying folders in Teams.",
+   "fieldname": "item_id",
+   "fieldtype": "Data",
+   "label": "Item ID",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_ms",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "folder_path",
+   "fieldtype": "Small Text",
+   "label": "Path When Created",
+   "read_only": 1
+  }
+ ],
+ "in_create": 1,
+ "links": [],
+ "modified": "2026-10-07 00:00:00",
+ "module": "Frappe Microsoft 365",
+ "name": "Microsoft Drive Folder",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "delete": 1,
+   "export": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "write": 1
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": [],
+ "title_field": "reference_name",
+ "track_changes": 0
+}

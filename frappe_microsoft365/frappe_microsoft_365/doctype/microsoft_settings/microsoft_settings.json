@@ -14,6 +14,7 @@
   "use_mail",
   "mail_flow",
   "use_sso",
+  "use_files",
   "capabilities_help",
   "app_section",
   "tenant_id",
@@ -21,6 +22,13 @@
   "client_secret",
   "column_break_app",
   "redirect_uri",
+  "files_section",
+  "files_help",
+  "files_mappings",
+  "files_options_column",
+  "files_keep_local_copy",
+  "files_archive_links",
+  "files_delete_remote",
   "scopes_section",
   "effective_scopes_display",
   "default_scopes",
@@ -95,6 +103,13 @@
    "description": "Adds a Microsoft button to the login page."
   },
   {
+   "fieldname": "use_files",
+   "fieldtype": "Check",
+   "label": "SharePoint document storage",
+   "default": "0",
+   "description": "Store attachments of chosen DocTypes in SharePoint / Teams instead of on this server. Uses an application permission (Sites.Selected), not anyone's sign-in."
+  },
+  {
    "fieldname": "capabilities_help",
    "fieldtype": "HTML",
    "label": "Capabilities Help",
@@ -137,6 +152,49 @@
    "description": "Register this exact URI in Azure. Blank uses the site default."
   },
   {
+   "fieldname": "files_section",
+   "fieldtype": "Section Break",
+   "label": "Document Storage",
+   "depends_on": "use_files"
+  },
+  {
+   "fieldname": "files_help",
+   "fieldtype": "HTML",
+   "label": "Document Storage Help",
+   "options": "<div class='text-muted' style='font-size: 13px; margin-bottom: 8px'>Each record of a mapped DocType gets its own folder, created on first use. New attachments are moved there in the background and open through Frappe for anyone allowed to read the record; files people add to the folder in Teams or SharePoint show in the record's <b>Files in Microsoft 365</b> panel. The Azure app needs the <b>Sites.Selected</b> application permission with admin consent, plus write access granted on each site \u2014 <b>Set Up</b> and <b>Run Diagnostics</b> walk through it.</div>"
+  },
+  {
+   "fieldname": "files_mappings",
+   "fieldtype": "Table",
+   "label": "Where Files Go",
+   "options": "Microsoft Drive Mapping"
+  },
+  {
+   "fieldname": "files_options_column",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "files_keep_local_copy",
+   "fieldtype": "Check",
+   "label": "Keep a local copy after upload",
+   "default": "0",
+   "description": "Off frees this server's disk, which is the point for most sites. On keeps both, e.g. while trialling."
+  },
+  {
+   "fieldname": "files_archive_links",
+   "fieldtype": "Check",
+   "label": "Also copy linked files into SharePoint",
+   "default": "0",
+   "description": "Attachments that are only a web link (e.g. a document published on a public website) are downloaded once and archived in the record's folder. The link itself is kept."
+  },
+  {
+   "fieldname": "files_delete_remote",
+   "fieldtype": "Check",
+   "label": "Remove from SharePoint when the attachment is deleted",
+   "default": "0",
+   "description": "Off by default: deleting an attachment in Frappe leaves the SharePoint copy alone. On sends it to the site's recycle bin, where it can be restored."
+  },
+  {
    "fieldname": "scopes_section",
    "fieldtype": "Section Break",
    "label": "Delegated Scopes",
@@ -164,7 +222,7 @@
  ],
  "issingle": 1,
  "links": [],
- "modified": "2026-09-13 00:00:00",
+ "modified": "2026-10-07 00:00:00",
  "module": "Frappe Microsoft 365",
  "name": "Microsoft Settings",
  "owner": "Administrator",

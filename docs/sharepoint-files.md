@@ -1,0 +1,133 @@
+# SharePoint document storage
+
+Keep a DocType's attachments in SharePoint, or in a Microsoft Teams channel's Files tab, instead
+of on the Frappe server. Each record gets its own folder. Files attached in Frappe move there,
+and files people drop into the folder from Teams show on the record.
+
+It is meant for sites where the documents attached to a record matter more than the record:
+contracts and their amendments, project deliverables, supplier certificates, signed agreements. These files
+are large, they keep coming, and the people who work on them already live in Teams. It also
+frees disk space, which matters on hosted plans with a fixed quota (Frappe Cloud, for example).
+
+## What happens
+
+1. **Microsoft Settings → Document Storage** maps a DocType to a SharePoint site, a document
+   library and a base folder. For a Teams channel, the library is `Documents` and the base
+   folder is the channel's name.
+2. The first time a record needs one, the app creates a folder for it under the base folder.
+   The folder name comes from a pattern, `{name}` by default, so `PRJ/2026/001` becomes
+   `Projects/PRJ-2026-001`.
+3. When someone attaches a file to the record, a background job uploads it to that folder.
+   The `File` row is then pointed at `/api/method/frappe_microsoft365.microsoft_files.open_file`.
+   The attachment still opens from the form, previews, prints and emails as before, and the copy
+   on the server's disk is removed. Tick **Keep a local copy after upload** while trialling.
+4. The record shows a **Files in Microsoft 365** panel. It lists everything in the folder,
+   including subfolders and files added from Teams or SharePoint, and has an **Open in
+   SharePoint** button.
+5. Files open through Frappe, so anyone who can read the record can open its files, whether or
+   not they have a SharePoint licence. People with SharePoint access can also use the folder
+   directly.
+
+Nothing is ever deleted from SharePoint by default. Removing an attachment in Frappe leaves the
+SharePoint copy alone. **Remove from SharePoint when the attachment is deleted** changes that, and
+even then the file goes to the site's recycle bin. Deleting a record keeps its folder too.
+
+### What moves and what stays
+
+| Attachment | Behaviour |
+| --- | --- |
+| A file attached to a record of a mapped DocType (sidebar / Attach button) | Moved |
+| A file behind a field (image, signature, an `Attach` field) | Stays local: print formats and web pages fetch these without a session |
+| A web link attached to a record | Stays a link. With **Also copy linked files into SharePoint** ticked, its target is downloaded once and archived in the folder; the link itself is kept |
+| Attachments on unmapped DocTypes | Untouched |
+| Attachments that existed before the DocType was mapped | Untouched until **Document Storage → Move Existing Attachments** |
+
+Uploads under 4 MB go up in a single request; larger ones go through a resumable upload session
+in 10 MB parts. A failed upload leaves the file where it was, marked `Failed` with the reason,
+and the hourly job retries it up to five times.
+
+## Permissions: Sites.Selected, not Sites.ReadWrite.All
+
+Document storage signs in as the **application** (OAuth client credentials), never as a person.
+A shared library must not stop working because whoever connected it leaves the company.
+
+The application permission it needs is **`Sites.Selected`**. On its own it grants access to no
+site at all. A SharePoint administrator then grants the app access to each mapped site, one by
+one. The tenant's other sites, including HR and finance sites, stay out of reach. The app never
+asks for `Sites.ReadWrite.All`.
+
+### Setup
+
+1. **Entra admin center → App registrations →** the app already used by this integration **→ API
+   permissions → Add a permission → Microsoft Graph → Application permissions →
+   `Sites.Selected` → Grant admin consent.**
+2. Make sure **Tenant ID** in Microsoft Settings is the directory (tenant) ID, not `common`.
+   Client-credential sign-in has no `/common` endpoint.
+3. In Microsoft Settings, tick **SharePoint document storage** and add a row under **Where Files
+   Go**:
+   - **SharePoint Site URL**: in Teams, open the channel's *Files* tab and choose *Open in
+     SharePoint*. Paste the address; anything after `/sites/<name>` is ignored.
+   - **Document Library**: `Documents` for Teams.
+   - **Base Folder**: the channel name, e.g. `Projects`. Nested paths like `Projects/2026` work.
+     The folder is created if it is missing.
+   - **Folder Name Pattern**: `{name}` by default. Use `{fieldname}` for any field, e.g.
+     `{name} - {customer}`.
+4. Save, then **Troubleshoot → SharePoint Site Grant Script**. A SharePoint or Global
+   administrator runs the script in Microsoft Graph PowerShell. For each mapped site it runs:
+
+   ```powershell
+   Connect-MgGraph -Scopes "Sites.FullControl.All"
+   $site = Get-MgSite -SiteId "contoso.sharepoint.com:/sites/Sales"
+   New-MgSitePermission -SiteId $site.Id -BodyParameter @{
+       roles = @("write")
+       grantedToIdentities = @(@{ application = @{ id = "<client id>"; displayName = "Frappe" } })
+   }
+   ```
+
+5. **Troubleshoot → Test SharePoint Connection.** It signs in as the app, resolves each site and
+   library, and creates and removes a `frappe-connection-test` folder in each base folder, so a
+   read-only grant shows up now rather than on the first upload.
+6. Optionally, **Document Storage → Move Existing Attachments** queues what is already attached.
+
+Uploads run on the `long` queue, so the site needs a background worker. That is always the case
+on Frappe Cloud. **Run Diagnostics** checks it.
+
+## Using it from code
+
+`frappe_microsoft365.microsoft_files` is plain Python that other apps can call:
+
+```python
+from frappe_microsoft365 import microsoft_files as m
+
+folder = m.ensure_folder("Project", "PROJ-0001")    # created on first use
+m.upload_stream(folder.drive_id, folder.item_id, "report.pdf", fh, size, "application/pdf")
+m.list_folder("Project", "PROJ-0001")               # whitelisted; checks read permission
+```
+
+Any Graph call can be made as the application with
+`microsoft_graph.graph_request(method, path, microsoft_graph.APP_ONLY, ...)`.
+
+## Frappe v15
+
+Everything works on v15 except one thing. Server-side code that reads a moved attachment's bytes
+(`File.get_content()`, used for example to attach a file to an outgoing email) needs Frappe v16's
+`extend_doctype_class` hook. On v15 those readers get no content, while opening and downloading
+from the desk work as normal. If you rely on emailing attachments of a mapped DocType on v15,
+keep a local copy.
+
+## Graph endpoints used
+
+All Graph v1.0, application permission `Sites.Selected`:
+
+| Purpose | Request |
+| --- | --- |
+| Site by URL | `GET /sites/{hostname}:/{server-relative-path}` |
+| Libraries | `GET /sites/{site-id}/drives`, `GET /sites/{site-id}/drive` |
+| Item by path | `GET /drives/{drive-id}/root:/{path}:`, `GET /drives/{drive-id}/items/{id}:/{name}:` |
+| Create folder | `POST /drives/{drive-id}/items/{parent-id}/children` (`conflictBehavior: fail`) |
+| Upload ≤ 4 MB | `PUT /drives/{drive-id}/items/{parent-id}:/{name}:/content?@microsoft.graph.conflictBehavior=rename` |
+| Upload > 4 MB | `POST …:/{name}:/createUploadSession`, then `PUT {uploadUrl}` in 320 KiB-multiple ranges, without a bearer token |
+| Download | `GET /drives/{drive-id}/items/{item-id}/content` (302 to a pre-authenticated URL) |
+| List | `GET /drives/{drive-id}/items/{item-id}/children` |
+| Rename (record renamed) | `PATCH /drives/{drive-id}/items/{item-id}` |
+| Remove (opt-in) | `DELETE /drives/{drive-id}/items/{item-id}`, which goes to the site recycle bin |

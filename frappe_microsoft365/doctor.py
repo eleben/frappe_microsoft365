@@ -75,6 +75,7 @@ ENTRA_ERROR_DOC = "https://learn.microsoft.com/en-us/entra/identity-platform/ref
 ENTRA_CONSENT_DOC = "https://learn.microsoft.com/en-us/entra/identity/enterprise-apps/grant-admin-consent"
 TEAMS_TRANSCRIPT_API_DOC = "https://learn.microsoft.com/en-us/microsoftteams/meeting-transcript-api-access"
 TEAMS_RECORDING_DOC = "https://learn.microsoft.com/en-us/microsoftteams/meeting-recording"
+SITES_SELECTED_DOC = "https://learn.microsoft.com/en-us/graph/permissions-selected-overview"
 TEAMS_RECORDING_OVERVIEW_DOC = (
 	"https://learn.microsoft.com/en-us/microsoftteams/recording-transcription-overview"
 )
@@ -1128,7 +1129,7 @@ def manual_setup_steps(settings=None):
 			"id": "admin_consent",
 			# First because it is the one that is chronologically first, and because every
 			# permission named in the other steps is worthless until it is done.
-			"needs": ("use_calendar", "use_teams", "use_transcripts"),
+			"needs": ("use_calendar", "use_teams", "use_transcripts", "use_files"),
 			"title": _("Confirm an administrator consented to the permissions"),
 			"where": _(
 				"Microsoft Entra admin center > App registrations > your app > API permissions > "
@@ -1201,6 +1202,24 @@ def manual_setup_steps(settings=None):
 			),
 			"doc": TEAMS_RECORDING_OVERVIEW_DOC,
 		},
+		{
+			"id": "files_site_grant",
+			"needs": ("use_files",),
+			"title": _("Confirm the app has write access to each mapped SharePoint site"),
+			"where": _(
+				"Entra admin center > App registrations > your app > API permissions > Add a "
+				"permission > Microsoft Graph > Application permissions > Sites.Selected, then Grant "
+				"admin consent. Sites.Selected on its own reaches no site at all: a SharePoint admin "
+				"then grants the app 'write' on each site, with the script from Troubleshoot > "
+				"SharePoint Site Grant Script."
+			),
+			"unlocks": _(
+				"Document storage, for exactly the sites that were granted and nothing else in the "
+				"tenant — unlike Sites.ReadWrite.All, which would reach every site."
+			),
+			"verify": _("Troubleshoot > Test SharePoint Connection reports every mapping OK."),
+			"doc": SITES_SELECTED_DOC,
+		},
 	]
 
 	if settings is None:
@@ -1242,7 +1261,7 @@ def _capability_summary(settings):
 		"use_teams": _("Standalone Teams meetings"),
 		"use_transcripts": _("Transcripts and recordings"),
 	}
-	return [
+	summary = [
 		{
 			"id": field.replace("use_", ""),
 			"field": field,
@@ -1253,6 +1272,124 @@ def _capability_summary(settings):
 		for field, scopes in graph.CAPABILITY_SCOPES
 		if settings.get(field)
 	]
+	if settings.get("use_files"):
+		# An application permission, not a delegated scope, so it is not in CAPABILITY_SCOPES:
+		# nobody signs in for it and it never appears on a consent screen at sign-in.
+		summary.append(
+			{
+				"id": "files",
+				"field": "use_files",
+				"label": _("SharePoint document storage"),
+				"enabled": True,
+				"permissions": ["Sites.Selected (Application)"],
+			}
+		)
+	return summary
+
+
+# --- SharePoint document storage -----------------------------------------------------
+
+def check_files(settings, mappings, failed=0):
+	"""Is document storage configured enough to work? Pure.
+
+	``mappings``: list of dicts with enabled, reference_doctype, site_url, base_folder.
+	``failed``: how many attachments are currently stuck in Failed.
+	"""
+	out = []
+	if not settings.get("use_files"):
+		return out
+
+	enabled = [m for m in mappings or [] if m.get("enabled")]
+	if not enabled:
+		out.append(
+			finding(
+				"files.mappings",
+				FAIL,
+				_("Document storage is on, but no DocType is mapped to SharePoint"),
+				_("Nothing will be moved until a row says which DocType goes where."),
+				_("Add a row under Microsoft Settings > Document Storage > Where Files Go."),
+			)
+		)
+
+	for m in enabled:
+		target = m.get("reference_doctype")
+		url = (m.get("site_url") or "").strip()
+		if not url:
+			out.append(finding("files.site_url", FAIL, _("No SharePoint site for {0}").format(target), "",
+				_("Paste the site URL, e.g. https://contoso.sharepoint.com/sites/Sales."), target=target))
+		elif ".sharepoint.com" not in url.lower():
+			out.append(
+				finding(
+					"files.site_url",
+					WARN,
+					_("{0} does not look like a SharePoint Online URL").format(url),
+					_("SharePoint Online sites live under <tenant>.sharepoint.com."),
+					_("In Teams, open the channel's Files tab > Open in SharePoint and copy that address."),
+					target=target,
+				)
+			)
+
+	tenant = (settings.get("tenant_id") or "").strip().lower()
+	if enabled and tenant in ("", "common", "organizations", "consumers"):
+		out.append(
+			finding(
+				"files.tenant",
+				FAIL,
+				_("Document storage needs a specific Tenant ID"),
+				_("It signs in as the application (client credentials), which cannot use '{0}'.").format(
+					tenant or "common"
+				),
+				_("Use the Directory (tenant) ID from the app registration's Overview page."),
+				MS_OAUTH_DOC,
+			)
+		)
+
+	if failed:
+		out.append(
+			finding(
+				"files.failed",
+				WARN,
+				_("{0} attachment(s) could not be moved to SharePoint").format(failed),
+				_("They are still on this server and open as before. Each is retried hourly, up to five times."),
+				_("Open the File list filtered on SharePoint Status = Failed; Last SharePoint Error says why."),
+			)
+		)
+	return out
+
+
+def powershell_for_site_grant(client_id, site_urls, role="write"):
+	"""Microsoft Graph PowerShell that grants this app access to specific SharePoint sites.
+
+	Sites.Selected is consent to be *granted* sites, not access to any; this is the grant. It
+	needs someone who can manage the sites (SharePoint admin or Sites.FullControl.All), which
+	is deliberately not this app.
+	"""
+	from frappe_microsoft365.microsoft_files import parse_site_url
+
+	lines = [
+		"# Grants the Frappe app access to the SharePoint sites mapped in Microsoft Settings.",
+		"# Run as a SharePoint or Global administrator. Requires: Install-Module Microsoft.Graph.Sites",
+		'Connect-MgGraph -Scopes "Sites.FullControl.All"',
+		f'$appId = "{client_id or "<client id>"}"',
+		"",
+	]
+	for url in site_urls:
+		host, path = parse_site_url(url)
+		site_ref = f"{host}:{path}" if path else host
+		lines += [
+			f"# {url}",
+			f'$site = Get-MgSite -SiteId "{site_ref}"',
+			"New-MgSitePermission -SiteId $site.Id -BodyParameter @{",
+			f'    roles = @("{role}")',
+			'    grantedToIdentities = @(@{ application = @{ id = $appId; displayName = "Frappe" } })',
+			"}",
+			"",
+		]
+	lines += [
+		"# Check: lists the apps granted on the last site above",
+		"Get-MgSitePermission -SiteId $site.Id | Format-List Roles, GrantedToIdentities",
+	]
+	return "\n".join(lines)
 
 
 # --- Exchange PowerShell for app-only access ------------------------------------------
@@ -1352,7 +1489,21 @@ def _settings_config():
 		"mail_flow": settings.mail_flow or "Delegated",
 		"default_scopes": settings.get("default_scopes") or "",
 		"authorized_scopes": settings.get("authorized_scopes") or "",
+		"use_files": settings.get("use_files"),
 	}
+
+
+def _files_mappings():
+	settings = frappe.get_cached_doc("Microsoft Settings")
+	return [
+		{
+			"enabled": row.enabled,
+			"reference_doctype": row.reference_doctype,
+			"site_url": row.site_url,
+			"base_folder": row.base_folder,
+		}
+		for row in settings.get("files_mappings") or []
+	]
 
 
 def _connected_app_config(name):
@@ -1417,6 +1568,15 @@ def run_diagnostics():
 		# above it.
 		findings += manual_step_findings(settings)
 
+	if settings.get("use_files"):
+		failed = 0
+		if frappe.db.has_column("File", "custom_microsoft_status"):
+			failed = frappe.db.count("File", {"custom_microsoft_status": "Failed"})
+		findings += check_files(settings, _files_mappings(), failed)
+		if not any(settings.get(field) for field, _scope in graph.CAPABILITY_SCOPES):
+			# Files has no delegated scope, so the block above that adds manual steps skipped it.
+			findings += manual_step_findings(settings)
+
 	if settings.get("use_calendar"):
 		findings += check_event_custom_fields(
 			[f for f in EVENT_CUSTOM_FIELDS if not frappe.db.has_column("Event", f)]
@@ -1425,7 +1585,7 @@ def run_diagnostics():
 	# Only where something actually depends on the queue. refresh=True because this is the one
 	# place a person looks *after* starting a worker to find out whether it worked, and a
 	# minute-old "no workers" would send them round the loop again.
-	if settings.get("use_calendar") or settings.get("use_transcripts"):
+	if settings.get("use_calendar") or settings.get("use_transcripts") or settings.get("use_files"):
 		findings += check_background_jobs(background.health(refresh=True))
 
 	wants_mail = bool(settings.get("use_mail"))
@@ -1554,3 +1714,17 @@ def app_only_powershell(mailboxes: str | list | None = None, send_as: int = 0):
 		),
 		"mailboxes": mailboxes or [],
 	}
+
+
+@frappe.whitelist()
+def site_grant_powershell():
+	"""The site-grant script for the mapped SharePoint sites. System Manager only."""
+	frappe.only_for("System Manager")
+	settings = frappe.get_cached_doc("Microsoft Settings")
+	urls = []
+	for row in settings.get("files_mappings") or []:
+		if row.enabled and row.site_url and row.site_url not in urls:
+			urls.append(row.site_url)
+	if not urls:
+		frappe.throw(_("Map at least one DocType to a SharePoint site first."))
+	return {"script": powershell_for_site_grant(settings.client_id, urls), "sites": urls}
