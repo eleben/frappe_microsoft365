@@ -587,6 +587,11 @@ class TestSettings(BaseTestCase):
 		mapping.save()
 		self.assertEqual(files.mapping_for(MAPPED).base_folder, "Archive")
 
+	def test_doctype_picker_offers_only_mapped_doctypes(self):
+		configure(self)
+		self.assertEqual(files.mapped_doctype_query("DocType", "to", "name", 0, 20, {}), [[MAPPED]])
+		self.assertEqual(files.mapped_doctype_query("DocType", "zzz", "name", 0, 20, {}), [])
+
 	def test_boot_lists_mapped_doctypes(self):
 		configure(self)
 		boot = frappe._dict()

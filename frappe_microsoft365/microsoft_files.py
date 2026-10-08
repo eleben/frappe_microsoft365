@@ -170,6 +170,16 @@ def mapped_doctypes(settings=None):
 	return sorted({row.reference_doctype for row in _mappings() if row.enabled})
 
 
+@frappe.whitelist()
+@frappe.validate_and_sanitize_search_inputs
+def mapped_doctype_query(doctype, txt, searchfield, start, page_len, filters):
+	"""Link-field search for DocTypes that have an enabled Drive Mapping."""
+	txt = (txt or "").lower()
+	names = [d for d in mapped_doctypes() if txt in d.lower()]
+	start, page_len = cint(start), cint(page_len) or 20
+	return [[d] for d in names[start : start + page_len]]
+
+
 def boot_session(bootinfo):
 	"""Tell the desk which DocTypes get the "Files in Microsoft 365" panel."""
 	try:
