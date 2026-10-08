@@ -665,7 +665,9 @@ def upload_file(file_name):
 	if local_url:
 		values["file_url"] = stored_url(file_name)
 		values["content_hash"] = None
-		values["custom_microsoft_local_url"] = local_url if keep_local else None
+		# Kept whether or not the disk copy is: links already handed out (a bookmark, an email,
+		# a form opened before the move) still say this URL, and redirect_moved_file follows it.
+		values["custom_microsoft_local_url"] = local_url
 	frappe.db.set_value("File", file_name, values, update_modified=False)
 	# The row must point at SharePoint, durably, before the copy on disk is removed.
 	frappe.db.commit()  # nosemgrep
@@ -677,6 +679,34 @@ def upload_file(file_name):
 
 
 MOVED_EVENT = "microsoft365_file_moved"
+
+
+def redirect_moved_file():
+	"""before_request: send an old /files or /private/files link of a moved file to its new home.
+
+	The disk copy is gone, so Frappe would answer the old link with Forbidden (private) or Not
+	Found (public). The redirect target, open_file, checks permission exactly as the old URL
+	would have, so this reveals nothing to someone who could not open the file before.
+	Costs nothing on other requests: a prefix check, then one indexed lookup only when the
+	file is missing from disk.
+	"""
+	request = getattr(frappe.local, "request", None)
+	if not request or request.method not in ("GET", "HEAD"):
+		return
+	from urllib.parse import unquote
+
+	path = unquote(request.path or "")
+	if not path.startswith(("/private/files/", "/files/")) or ".." in path.split("/"):
+		return
+	if os.path.exists(local_path(path)):
+		return
+	name = frappe.db.get_value(
+		"File", {"custom_microsoft_local_url": path, "custom_microsoft_status": STORED}, "name"
+	)
+	if name:
+		from werkzeug.routing import RequestRedirect
+
+		raise RequestRedirect(stored_url(name))
 
 
 def _repoint_links(file_doc, old_url, new_url):

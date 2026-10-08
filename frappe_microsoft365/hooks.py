@@ -49,6 +49,9 @@ ignore_links_on_delete = ["SharePoint Folder"]
 
 boot_session = "frappe_microsoft365.microsoft_files.boot_session"
 
+# Old /files and /private/files links of attachments that moved to SharePoint redirect to them.
+before_request = ["frappe_microsoft365.microsoft_files.redirect_moved_file"]
+
 scheduler_events = {
 	"cron": {
 		"*/15 * * * *": [

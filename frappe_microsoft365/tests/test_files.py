@@ -395,7 +395,7 @@ class TestUpload(FilesTestCase):
 		self.assertEqual(row.custom_microsoft_status, files.STORED)
 		self.assertEqual(row.custom_microsoft_item_id, "ITEM-" + f.file_name)
 		self.assertEqual(row.custom_microsoft_drive_id, "DRIVE")
-		self.assertIsNone(row.custom_microsoft_local_url)
+		self.assertEqual(row.custom_microsoft_local_url, f.file_url)  # old links redirect
 		self.assertIsNone(row.content_hash)
 		self.assertFalse(os.path.exists(path))
 
@@ -431,6 +431,25 @@ class TestUpload(FilesTestCase):
 			folder = files.ensure_folder(MAPPED, self.todo.name)
 		ensure.assert_called_once_with("DRIVE", [files.safe_name(self.todo.name)])
 		self.assertEqual(folder.folder_path, files.safe_name(self.todo.name))
+
+	def test_old_links_redirect_to_the_moved_file(self):
+		from types import SimpleNamespace as NS
+
+		from werkzeug.routing import RequestRedirect
+
+		f = self.attach()
+		old = f.file_url
+		files.upload_file(f.name)
+		frappe.local.request = NS(method="GET", path=old)
+		self.addCleanup(setattr, frappe.local, "request", None)
+		with self.assertRaises(RequestRedirect) as caught:
+			files.redirect_moved_file()
+		self.assertTrue(caught.exception.new_url.endswith(files.stored_url(f.name)))
+		# anything else passes straight through
+		frappe.local.request = NS(method="GET", path="/private/files/never-existed.txt")
+		files.redirect_moved_file()
+		frappe.local.request = NS(method="GET", path="/app/todo")
+		files.redirect_moved_file()
 
 	def test_keep_local_copy(self):
 		configure(self, files_keep_local_copy=1)

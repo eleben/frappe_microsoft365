@@ -336,10 +336,11 @@ def create_file_custom_fields():
 			{
 				"fieldname": "custom_microsoft_local_url",
 				"fieldtype": "Data",
-				"label": "Local Copy",
+				"label": "Original URL",
 				"insert_after": "custom_microsoft_item_id",
 				"read_only": 1,
-				"description": "Set only when Keep a local copy is on; served if the SharePoint copy disappears.",
+				"search_index": 1,
+				"description": "Where the file was on this server before it moved. Old links to it are redirected to SharePoint. With Keep a local copy on, the copy is still there and is served if the SharePoint copy disappears.",
 			},
 			{
 				"fieldname": "custom_microsoft_attempts",
