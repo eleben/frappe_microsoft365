@@ -34,6 +34,7 @@ def configure(test, **overrides):
 			"files_keep_local_copy",
 			"files_archive_links",
 			"files_delete_remote",
+			"files_on_uninstall",
 		)
 	}
 
@@ -47,6 +48,7 @@ def configure(test, **overrides):
 			"files_keep_local_copy": 0,
 			"files_archive_links": 0,
 			"files_delete_remote": 0,
+			"files_on_uninstall": None,
 		}
 	)
 	doc.update(overrides)
@@ -661,16 +663,70 @@ class TestUninstall(FilesTestCase):
 			self.assertEqual(files.bring_back(f.name), old)
 		gr.assert_not_called()
 
-	def test_uninstall_stops_if_a_file_cannot_come_back(self):
+	def _uninstall_as(self, how):
+		from frappe_microsoft365 import uninstall
+
+		return patch.object(uninstall, "choice", return_value=how)
+
+	def test_uninstall_stops_until_someone_chooses(self):
+		from frappe_microsoft365 import uninstall
+
+		self._moved()
+		with self._uninstall_as(None):
+			with self.assertRaises(frappe.ValidationError):
+				uninstall.handle_files()
+
+	def test_uninstall_will_not_fill_the_disk(self):
 		from frappe_microsoft365 import uninstall
 
 		self._moved()
 		with (
+			self._uninstall_as(uninstall.RESTORE),
+			patch.object(uninstall, "free_space", return_value=1),
+			patch.object(files, "bring_back") as back,
+		):
+			with self.assertRaises(frappe.ValidationError):
+				uninstall.handle_files()
+		back.assert_not_called()
+
+	def test_leaving_files_in_sharepoint_turns_them_into_links(self):
+		from frappe_microsoft365 import uninstall
+
+		f, _old = self._moved()
+		with self._uninstall_as(uninstall.LEAVE), patch.object(files, "bring_back") as back:
+			uninstall.handle_files()
+		back.assert_not_called()
+		row = frappe.db.get_value("File", f.name, ["file_url", "custom_microsoft_status"], as_dict=True)
+		self.assertTrue(row.file_url.startswith("https://contoso.sharepoint.com/"))
+		self.assertIsNone(row.custom_microsoft_status)
+		comments = frappe.get_all(
+			"Comment",
+			filters={"reference_name": self.todo.name, "comment_type": "Attachment"},
+			pluck="content",
+		)
+		self.assertFalse(any(files.stored_url(f.name) in c for c in comments))
+
+	def test_uninstall_stops_if_a_file_cannot_be_handled(self):
+		from frappe_microsoft365 import uninstall
+
+		self._moved()
+		with (
+			self._uninstall_as(uninstall.RESTORE),
+			patch.object(uninstall, "free_space", return_value=10**12),
 			patch.object(files, "bring_back", side_effect=MsGraphError("offline")),
 			patch.object(frappe.db, "rollback"),
 		):
 			with self.assertRaises(frappe.ValidationError):
-				uninstall.restore_files()
+				uninstall.handle_files()
+
+	def test_choice_follows_settings_then_site_config(self):
+		from frappe_microsoft365 import uninstall
+
+		configure(self, files_on_uninstall=uninstall.LEAVE)
+		with patch.object(uninstall.sys, "stdin", None):
+			self.assertEqual(uninstall.choice(), uninstall.LEAVE)
+			with patch.dict(frappe.conf, {"microsoft365_uninstall_files": "restore"}):
+				self.assertEqual(uninstall.choice(), uninstall.RESTORE)
 
 	def test_dry_run_changes_nothing(self):
 		from frappe_microsoft365 import uninstall
@@ -680,9 +736,9 @@ class TestUninstall(FilesTestCase):
 		def remove_app(dry_run=True):
 			uninstall.before_uninstall()
 
-		with patch.object(files, "bring_back") as back, patch.object(uninstall, "clear_caches") as clear:
+		with patch.object(uninstall, "choice") as asked, patch.object(uninstall, "clear_caches") as clear:
 			remove_app()
-		back.assert_not_called()
+		asked.assert_not_called()
 		clear.assert_not_called()
 		self.assertTrue(frappe.db.has_column("File", "custom_microsoft_status"))
 

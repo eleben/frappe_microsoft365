@@ -1567,3 +1567,48 @@ def bring_back(file_name):
 			update_modified=False,
 		)
 	return target
+
+
+def leave_in_sharepoint(file_name):
+	"""Turn a moved attachment into a plain link to its SharePoint copy (uninstall, no download).
+
+	Once this app is gone nothing answers open_file, but a File whose file_url is an https link
+	is something Frappe opens by itself: the browser goes straight to SharePoint, which lets in
+	whoever has access to the site. Returns the URL the attachment now has.
+	"""
+	file_doc = frappe.get_doc("File", file_name)
+	if file_doc.get("custom_microsoft_status") != STORED:
+		return file_doc.file_url
+	old_url = file_doc.file_url
+	web_url = file_doc.get("custom_microsoft_web_url")
+	if not web_url:
+		item = graph.graph_request(
+			"GET",
+			f"/drives/{file_doc.custom_microsoft_drive_id}/items/{file_doc.custom_microsoft_item_id}",
+			APP_ONLY,
+			params={"$select": "webUrl"},
+		)
+		web_url = item.get("webUrl")
+	if not web_url:
+		frappe.throw(_("SharePoint gave no address for {0}.").format(file_doc.file_name))
+	frappe.db.set_value(
+		"File", file_doc.name, {"file_url": web_url, "custom_microsoft_status": None}, update_modified=False
+	)
+	for comment in frappe.get_all(
+		"Comment",
+		filters={
+			"reference_doctype": file_doc.attached_to_doctype,
+			"reference_name": file_doc.attached_to_name,
+			"comment_type": "Attachment",
+			"content": ["like", f"%{old_url}%"],
+		},
+		fields=["name", "content"],
+	):
+		frappe.db.set_value(
+			"Comment",
+			comment.name,
+			"content",
+			comment.content.replace(old_url, web_url),
+			update_modified=False,
+		)
+	return web_url

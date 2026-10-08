@@ -25,9 +25,10 @@
 - *Move Existing Attachments* queues files attached before a DocType was mapped. Optional
   archiving of linked attachments, SSRF-guarded to public addresses.
 
-- **Clean uninstall**: attachments in SharePoint are brought back to the server first (the uninstall
-  stops rather than leave one broken), then every custom field the app added to Event and File is
-  deleted and its column dropped. A dry run only reports.
+- **Clean uninstall**: attachments in SharePoint are brought back to the server (only if the disk
+  has room) or turned into SharePoint links, as chosen in Microsoft Settings; the uninstall stops
+  rather than guess or leave one broken. Then every custom field the app added to Event and File
+  is deleted and its column dropped. A dry run only reports.
 
 Nothing is deleted from SharePoint unless *Remove from SharePoint when the attachment is
 deleted* is ticked, and then only to the site recycle bin. Deleting a record keeps its folder.

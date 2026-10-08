@@ -126,15 +126,23 @@ on Frappe Cloud. **Run Diagnostics** checks it.
 
 ## Uninstalling
 
-`bench --site <site> uninstall-app frappe_microsoft365` first brings every moved attachment back
-from SharePoint to the server and points its File row at it again, then deletes the custom fields
-the app added and drops their columns. The copies in SharePoint are not touched.
+Before `bench --site <site> uninstall-app frappe_microsoft365` removes anything, it deals with the
+attachments stored in SharePoint as chosen in **Microsoft Settings → Document Storage → If this app
+is uninstalled** (or `"microsoft365_uninstall_files": "restore"` / `"leave"` in `site_config.json`):
 
-If a file cannot be brought back (usually the connection is broken), the uninstall stops before
-removing anything and lists the files. Fix the connection and run it again; files already brought
-back stay back. A site that has lost SharePoint access for good can set
-`"microsoft365_uninstall_skip_restore": 1` in `site_config.json` to uninstall anyway; those
-attachments then exist only in SharePoint.
+- **Bring files back to this server**: each file is downloaded back and its attachment works as
+  before. The free disk space is checked first. If the files would not fit with 10% to spare,
+  nothing is downloaded and the uninstall stops, so it can never fill a hosted server.
+- **Leave files in SharePoint**: nothing is downloaded. Each attachment becomes a link to its
+  SharePoint copy, which opens for people with access to the site.
+- **No choice made**: in a terminal it asks; otherwise (Frappe Cloud's dashboard, for example) the
+  uninstall stops and says where to choose.
+
+If any file cannot be handled (usually a broken connection), the uninstall stops and lists the
+files rather than leave one unopenable. Fix the cause and run it again; files already handled
+stay handled. SharePoint copies are never deleted. The app then deletes the custom fields it added
+and drops their columns. `--dry-run` reports the file count, total size and free space, and
+changes nothing.
 
 ## Using it from code
 

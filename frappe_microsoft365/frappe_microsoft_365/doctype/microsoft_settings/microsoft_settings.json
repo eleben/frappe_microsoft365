@@ -28,6 +28,7 @@
   "files_keep_local_copy",
   "files_archive_links",
   "files_delete_remote",
+  "files_on_uninstall",
   "scopes_section",
   "effective_scopes_display",
   "default_scopes",
@@ -188,6 +189,13 @@
    "description": "<b>Off:</b> deleting an attachment here leaves the SharePoint copy alone.<br><b>On:</b> the SharePoint copy goes to the site's recycle bin, where it can be restored."
   },
   {
+   "fieldname": "files_on_uninstall",
+   "fieldtype": "Select",
+   "label": "If this app is uninstalled",
+   "options": "\nBring files back to this server\nLeave files in SharePoint",
+   "description": "What happens to attachments stored in SharePoint when the app is removed.<br><b>Bring files back to this server:</b> each file is downloaded back and its attachment works as before. Checks there is enough free disk space first, and stops if there is not.<br><b>Leave files in SharePoint:</b> nothing is downloaded; each attachment becomes a link to the file in SharePoint, which opens for people with access to the site.<br><b>Blank:</b> the uninstall stops and asks."
+  },
+  {
    "fieldname": "scopes_section",
    "fieldtype": "Section Break",
    "label": "Delegated Scopes",
@@ -215,7 +223,7 @@
  ],
  "issingle": 1,
  "links": [],
- "modified": "2026-10-08 18:00:00",
+ "modified": "2026-10-08 20:00:00",
  "module": "Frappe Microsoft 365",
  "name": "Microsoft Settings",
  "owner": "Administrator",

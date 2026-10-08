@@ -132,10 +132,10 @@ explained first. See
 
 The site is left as it was before the app, with nothing to clean up by hand:
 
-- Attachments that were moved to SharePoint are downloaded back to the server first and their
-  links restored, so every attachment still opens. The SharePoint copies stay in SharePoint. If
-  any file cannot be brought back, the uninstall stops and lists them rather than leave a broken
-  attachment (see [SharePoint document storage](sharepoint-files.md#uninstalling)).
+- Attachments stored in SharePoint are either brought back to the server (after checking there
+  is room) or turned into links to their SharePoint copies, whichever Microsoft Settings says.
+  Nothing is removed until every attachment opens again; with no choice made the uninstall stops
+  and asks (see [SharePoint document storage](sharepoint-files.md#uninstalling)).
 - Every custom field the app added to `Event` and `File` is deleted, and its column dropped.
 - `Microsoft Settings`, `Microsoft Calendar` connections, SharePoint mappings and folder links go
   with the app, as do its cached tokens.
