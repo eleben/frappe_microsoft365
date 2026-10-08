@@ -8,6 +8,15 @@ frappe.ui.form.on("SharePoint Folder", {
 		}));
 	},
 	refresh(frm) {
+		if (!frm.is_new()) {
+			frm.set_intro(
+				__(
+					"{0} {1} keeps its files in this SharePoint folder. Renaming or moving the folder in SharePoint does not break the link; deleting this record only forgets it.",
+					[__(frm.doc.reference_doctype), frm.doc.reference_name],
+				),
+				"blue",
+			);
+		}
 		if (!frm.is_new() && frm.doc.web_url) {
 			frm.add_custom_button(__("Open in SharePoint"), () =>
 				window.open(frm.doc.web_url, "_blank"),

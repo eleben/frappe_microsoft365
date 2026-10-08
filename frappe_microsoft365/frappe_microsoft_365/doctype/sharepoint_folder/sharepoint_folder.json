@@ -20,6 +20,7 @@
  ],
  "fields": [
   {
+   "depends_on": "eval:doc.__islocal",
    "fieldname": "about",
    "fieldtype": "HTML",
    "label": "About",
@@ -104,7 +105,7 @@
   }
  ],
  "links": [],
- "modified": "2026-10-08 19:00:00",
+ "modified": "2026-10-08 21:30:00",
  "module": "Frappe Microsoft 365",
  "name": "SharePoint Folder",
  "owner": "Administrator",
