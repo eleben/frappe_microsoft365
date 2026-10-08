@@ -171,21 +171,21 @@
    "fieldtype": "Check",
    "label": "Keep a local copy after upload",
    "default": "0",
-   "description": "Off frees this server's disk, which is the point for most sites. On keeps both, e.g. while trialling."
+   "description": "<b>Off:</b> the copy on this server is deleted once the file is in SharePoint, freeing disk space.<br><b>On:</b> both copies are kept, e.g. while trialling. If the SharePoint copy disappears, the local one is served."
   },
   {
    "fieldname": "files_archive_links",
    "fieldtype": "Check",
    "label": "Also copy linked files into SharePoint",
    "default": "0",
-   "description": "Attachments that are only a web link (e.g. a document published on a public website) are downloaded once and archived in the record's folder. The link itself is kept."
+   "description": "<b>Off:</b> attachments that are only a web link stay links.<br><b>On:</b> the linked file is downloaded once and archived in the record's folder. The link itself is kept."
   },
   {
    "fieldname": "files_delete_remote",
    "fieldtype": "Check",
    "label": "Remove from SharePoint when the attachment is deleted",
    "default": "0",
-   "description": "Off by default: deleting an attachment in Frappe leaves the SharePoint copy alone. On sends it to the site's recycle bin, where it can be restored."
+   "description": "<b>Off:</b> deleting an attachment here leaves the SharePoint copy alone.<br><b>On:</b> the SharePoint copy goes to the site's recycle bin, where it can be restored."
   },
   {
    "fieldname": "scopes_section",
@@ -215,7 +215,7 @@
  ],
  "issingle": 1,
  "links": [],
- "modified": "2026-10-08 12:00:00",
+ "modified": "2026-10-08 18:00:00",
  "module": "Frappe Microsoft 365",
  "name": "Microsoft Settings",
  "owner": "Administrator",

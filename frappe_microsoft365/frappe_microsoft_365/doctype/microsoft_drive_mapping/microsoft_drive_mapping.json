@@ -61,7 +61,7 @@
   },
   {
    "default": "Automatic",
-   "description": "Automatic: every record gets a folder on its first attachment, and all its attachments move to SharePoint. On demand: nothing moves until someone creates the record's folder (Create folder now on the record, or a new Microsoft Drive Folder); from then on that record's attachments move, and other records stay on this server.",
+   "description": "<b>Automatic:</b> every record gets a folder on its first attachment, and all its attachments move to SharePoint.<br><b>On demand:</b> nothing moves until someone creates the record's folder (Create folder now on the record, or a new Drive Folder). From then on that record's attachments move; other records stay on this server.",
    "fieldname": "folder_creation",
    "fieldtype": "Select",
    "in_list_view": 1,
@@ -90,7 +90,7 @@
   },
   {
    "default": "1",
-   "description": "On: record folders go inside the Base Folder below. For a standard Teams channel keep this on and use the channel name, since that is the channel's folder. Off: each record's folder goes straight into the library. For a private or shared channel, which has a site of its own, that is the channel's Files tab, with no extra folder in between.",
+   "description": "<b>On:</b> record folders go inside the Base Folder below. Use this for a standard Teams channel, with the channel name as Base Folder.<br><b>Off:</b> record folders go straight into the library. Use this for a private or shared channel, which has a site of its own, so they appear directly in the channel's Files tab.",
    "fieldname": "use_base_folder",
    "fieldtype": "Check",
    "label": "Group record folders in a base folder"
@@ -142,7 +142,7 @@
    "link_fieldname": "reference_doctype"
   }
  ],
- "modified": "2026-10-08 15:00:00",
+ "modified": "2026-10-08 18:00:00",
  "module": "Frappe Microsoft 365",
  "name": "Microsoft Drive Mapping",
  "naming_rule": "By fieldname",

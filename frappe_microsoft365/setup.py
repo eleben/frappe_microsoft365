@@ -295,7 +295,7 @@ def create_file_custom_fields():
 				"read_only": 1,
 				"in_standard_filter": 1,
 				"search_index": 1,
-				"description": "Stored: moved to SharePoint and opened from there. Archived: a link whose target was copied to SharePoint. Pending / Failed: retried hourly.",
+				"description": "<b>Pending:</b> waiting to move.<br><b>Stored:</b> moved to SharePoint and opened from there.<br><b>Archived:</b> a link whose target was copied to SharePoint.<br><b>Failed:</b> still on this server; see Last SharePoint Error. Retried hourly.",
 			},
 			{
 				"fieldname": "custom_microsoft_web_url",
