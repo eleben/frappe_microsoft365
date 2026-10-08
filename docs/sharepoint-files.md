@@ -75,7 +75,7 @@ asks for `Sites.ReadWrite.All`.
 2. Make sure **Tenant ID** in Microsoft Settings is the directory (tenant) ID, not `common`.
    Client-credential sign-in has no `/common` endpoint.
 3. In Microsoft Settings, tick **SharePoint document storage** and save. Then create a
-   **Microsoft Drive Mapping** (*Microsoft Settings → Document Storage → Drive Mappings → Add*):
+   **Microsoft Drive Mapping** (sidebar *SharePoint Storage → Drive Mappings*, or *Microsoft Settings → Document Storage → Drive Mappings*, then **Add**):
    - **DocType**: the DocType whose attachments go to SharePoint. The mapping is named after it,
      so each DocType can be mapped once.
    - **SharePoint Site URL**: in Teams, open the channel's *Files* tab and choose *Open in

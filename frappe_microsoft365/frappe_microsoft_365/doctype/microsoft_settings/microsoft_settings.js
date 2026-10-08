@@ -30,6 +30,11 @@ frappe.ui.form.on("Microsoft Settings", {
 				() => frappe.set_route("List", "Microsoft Drive Mapping"),
 				__("Document Storage")
 			);
+			frm.add_custom_button(
+				__("Drive Folders"),
+				() => frappe.set_route("List", "Microsoft Drive Folder"),
+				__("Document Storage")
+			);
 			frm.add_custom_button(__("Move Existing Attachments"), () => move_existing(frm), __("Document Storage"));
 			show_storage_summary(frm);
 		}
