@@ -89,6 +89,22 @@ asks for `Sites.ReadWrite.All`.
    read-only grant shows up now rather than on the first upload.
 6. Optionally, **Document Storage → Move Existing Attachments** queues what is already attached.
 
+### Private and shared channels
+
+A standard channel keeps its files in the team's own site. A **private** or **shared** channel gets
+a separate SharePoint site of its own, usually `https://<tenant>.sharepoint.com/sites/<Team>-<Channel>`,
+with the channel's files in a folder of that site's `Documents` library. To use one:
+
+- **Site URL**: the channel's own site. In Teams, open the channel's *Files* tab → *Open in
+  SharePoint*.
+- **Library**: `Documents`. **Base Folder**: the channel name.
+- **Grant the app that site.** A grant on the parent team's site does not reach a private
+  channel's site. The Site Grant Script lists every site in your mappings.
+
+The app reads and writes as itself, not as a channel member. Who can open the files from Frappe
+is therefore decided by Frappe permissions on the DocType, not by channel membership. Restrict
+the DocType's roles accordingly if the channel is private for a reason.
+
 Uploads run on the `long` queue, so the site needs a background worker. That is always the case
 on Frappe Cloud. **Run Diagnostics** checks it.
 
