@@ -172,7 +172,9 @@ def mapped_doctypes(settings=None):
 
 @frappe.whitelist()
 @frappe.validate_and_sanitize_search_inputs
-def mapped_doctype_query(doctype, txt, searchfield, start, page_len, filters):
+def mapped_doctype_query(
+	doctype: str, txt: str, searchfield: str, start: int, page_len: int, filters: dict | None = None
+):
 	"""Link-field search for DocTypes that have an enabled SharePoint Mapping."""
 	txt = (txt or "").lower()
 	names = [d for d in mapped_doctypes() if txt in d.lower()]
@@ -934,9 +936,7 @@ def on_file_trash(doc, method=None):
 
 def on_doc_trash(doc, method=None):
 	"""Any document's on_trash: forget its folder record. The SharePoint folder is kept."""
-	if doc.doctype in ("SharePoint Folder", "File") or not frappe.db.table_exists(
-		"SharePoint Folder"
-	):
+	if doc.doctype in ("SharePoint Folder", "File") or not frappe.db.table_exists("SharePoint Folder"):
 		return
 	if doc.doctype not in mapped_doctypes():
 		return
