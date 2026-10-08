@@ -94,15 +94,17 @@ function setup_guide() {
 				return rows.join("");
 			});
 
-			new frappe.ui.Dialog({
+			// primary_action receives the dialog's values, not the dialog: close over it instead.
+			const dialog = new frappe.ui.Dialog({
 				title: __("Setup Guide"),
 				size: "large",
 				fields: [{ fieldtype: "HTML", options: head.join("") + steps.join("") }],
 				primary_action_label: __("Close"),
-				primary_action(dialog) {
+				primary_action() {
 					dialog.hide();
 				},
-			}).show();
+			});
+			dialog.show();
 		},
 	});
 }
