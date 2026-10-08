@@ -160,7 +160,7 @@
    "fieldname": "files_help",
    "fieldtype": "HTML",
    "label": "Document Storage Help",
-   "options": "<div class='text-muted' style='font-size: 13px; margin-bottom: 8px'>Which DocTypes are stored where is set in <a href='/app/microsoft-drive-mapping'><b>Microsoft Drive Mapping</b></a>, one record per DocType, each with its own <b>Test</b> button. Each record of a mapped DocType gets its own folder, created on first use. New attachments are moved there in the background and open through Frappe for anyone allowed to read the record; files people add to the folder in Teams or SharePoint show in the record's <b>Files in Microsoft 365</b> panel. The Azure app needs the <b>Sites.Selected</b> application permission under Microsoft Graph, with admin consent, plus write access granted on each site.</div>"
+   "options": "<div class='text-muted' style='font-size: 13px; margin-bottom: 8px'>Which DocTypes are stored where is set in <a href='/app/sharepoint-mapping'><b>SharePoint Mapping</b></a>, one record per DocType, each with its own <b>Test</b> button. Each record of a mapped DocType gets its own folder, created on first use. New attachments are moved there in the background and open through Frappe for anyone allowed to read the record; files people add to the folder in Teams or SharePoint show in the record's <b>Files in Microsoft 365</b> panel. The Azure app needs the <b>Sites.Selected</b> application permission under Microsoft Graph, with admin consent, plus write access granted on each site.</div>"
   },
   {
    "fieldname": "files_options_column",

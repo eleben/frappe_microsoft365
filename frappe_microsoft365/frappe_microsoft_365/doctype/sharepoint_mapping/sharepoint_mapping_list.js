@@ -1,4 +1,4 @@
-frappe.listview_settings["Microsoft Drive Mapping"] = {
+frappe.listview_settings["SharePoint Mapping"] = {
 	get_indicator(doc) {
 		return doc.enabled
 			? [__("Enabled"), "green", "enabled,=,1"]

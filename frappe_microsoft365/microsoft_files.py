@@ -1,6 +1,6 @@
 """SharePoint / Microsoft Teams document storage for Frappe attachments.
 
-A site creates one Microsoft Drive Mapping per DocType, saying where its files go:
+A site creates one SharePoint Mapping per DocType, saying where its files go:
 a SharePoint site, a document library and a base folder (for a Teams channel, the channel's
 folder in the team's library). From then on:
 
@@ -110,7 +110,7 @@ def files_enabled(settings=None):
 	return bool(settings.enabled and settings.get("use_files"))
 
 
-MAPPING_CACHE_KEY = "frappe_microsoft365:drive_mappings"
+MAPPING_CACHE_KEY = "frappe_microsoft365:sharepoint_mappings"
 
 MAPPING_FIELDS = [
 	"name",
@@ -128,14 +128,14 @@ MAPPING_FIELDS = [
 
 
 def _mappings():
-	"""Every Microsoft Drive Mapping, cached per site until one changes.
+	"""Every SharePoint Mapping, cached per site until one changes.
 
 	Read on every attachment and, through the "*" hooks, on every delete and rename on the site,
 	so it must not cost a query each time.
 	"""
 	cached = frappe.cache().get_value(MAPPING_CACHE_KEY)
 	if cached is None:
-		cached = frappe.get_all("Microsoft Drive Mapping", fields=MAPPING_FIELDS, order_by="name asc")
+		cached = frappe.get_all("SharePoint Mapping", fields=MAPPING_FIELDS, order_by="name asc")
 		frappe.cache().set_value(MAPPING_CACHE_KEY, [dict(r) for r in cached])
 	return [frappe._dict(r) for r in cached]
 
@@ -154,7 +154,7 @@ def is_on_demand(row):
 
 
 def mapping_for(doctype, settings=None):
-	"""The enabled Microsoft Drive Mapping for a DocType, or None."""
+	"""The enabled SharePoint Mapping for a DocType, or None."""
 	if not doctype:
 		return None
 	for row in _mappings():
@@ -173,7 +173,7 @@ def mapped_doctypes(settings=None):
 @frappe.whitelist()
 @frappe.validate_and_sanitize_search_inputs
 def mapped_doctype_query(doctype, txt, searchfield, start, page_len, filters):
-	"""Link-field search for DocTypes that have an enabled Drive Mapping."""
+	"""Link-field search for DocTypes that have an enabled SharePoint Mapping."""
 	txt = (txt or "").lower()
 	names = [d for d in mapped_doctypes() if txt in d.lower()]
 	start, page_len = cint(start), cint(page_len) or 20
@@ -308,7 +308,7 @@ def resolve_drive(row):
 	drive_id = _find_drive(site_id, row.library)
 
 	frappe.db.set_value(
-		"Microsoft Drive Mapping", row.name, {"site_id": site_id, "drive_id": drive_id}, update_modified=False
+		"SharePoint Mapping", row.name, {"site_id": site_id, "drive_id": drive_id}, update_modified=False
 	)
 	row.site_id, row.drive_id = site_id, drive_id
 	clear_mapping_cache()
@@ -398,9 +398,9 @@ def ensure_path(drive_id, segments):
 
 
 def get_folder(doctype, name):
-	"""The Microsoft Drive Folder record for a document, or None."""
+	"""The SharePoint Folder record for a document, or None."""
 	return frappe.db.get_value(
-		"Microsoft Drive Folder",
+		"SharePoint Folder",
 		{"reference_doctype": doctype, "reference_name": name},
 		["name", "drive_id", "item_id", "web_url", "folder_name", "folder_path"],
 		as_dict=True,
@@ -425,7 +425,7 @@ def ensure_folder(doctype, name):
 		return existing
 
 	record = frappe.get_doc(
-		{"doctype": "Microsoft Drive Folder", "reference_doctype": doctype, "reference_name": name, **values}
+		{"doctype": "SharePoint Folder", "reference_doctype": doctype, "reference_name": name, **values}
 	).insert(ignore_permissions=True)
 	return frappe._dict(record.as_dict())
 
@@ -531,7 +531,7 @@ def queue_record(doctype, name):
 
 def _forget_folder(folder):
 	"""Drop a folder record whose SharePoint folder is gone, so the next call recreates it."""
-	frappe.db.delete("Microsoft Drive Folder", {"name": folder.name})
+	frappe.db.delete("SharePoint Folder", {"name": folder.name})
 
 
 # --- uploads -----------------------------------------------------------------------------
@@ -934,13 +934,13 @@ def on_file_trash(doc, method=None):
 
 def on_doc_trash(doc, method=None):
 	"""Any document's on_trash: forget its folder record. The SharePoint folder is kept."""
-	if doc.doctype in ("Microsoft Drive Folder", "File") or not frappe.db.table_exists(
-		"Microsoft Drive Folder"
+	if doc.doctype in ("SharePoint Folder", "File") or not frappe.db.table_exists(
+		"SharePoint Folder"
 	):
 		return
 	if doc.doctype not in mapped_doctypes():
 		return
-	frappe.db.delete("Microsoft Drive Folder", {"reference_doctype": doc.doctype, "reference_name": doc.name})
+	frappe.db.delete("SharePoint Folder", {"reference_doctype": doc.doctype, "reference_name": doc.name})
 
 
 def on_doc_rename(doc, method=None, old=None, new=None, merge=False):
@@ -951,9 +951,9 @@ def on_doc_rename(doc, method=None, old=None, new=None, merge=False):
 	if not folder:
 		return
 	if merge or get_folder(doc.doctype, new):
-		frappe.db.delete("Microsoft Drive Folder", {"name": folder.name})
+		frappe.db.delete("SharePoint Folder", {"name": folder.name})
 		return
-	frappe.db.set_value("Microsoft Drive Folder", folder.name, "reference_name", new, update_modified=False)
+	frappe.db.set_value("SharePoint Folder", folder.name, "reference_name", new, update_modified=False)
 	row = mapping_for(doc.doctype)
 	new_name = render_pattern(row.folder_pattern, frappe.get_doc(doc.doctype, new))
 	if new_name == folder.folder_name:
@@ -969,7 +969,7 @@ def on_doc_rename(doc, method=None, old=None, new=None, merge=False):
 			},
 		)
 		frappe.db.set_value(
-			"Microsoft Drive Folder",
+			"SharePoint Folder",
 			folder.name,
 			{"folder_name": new_name, "web_url": item.get("webUrl")},
 			update_modified=False,
@@ -1418,7 +1418,7 @@ def test_connection(mapping: str | None = None):
 				WARN,
 				_("No DocType is mapped yet"),
 				"",
-				_("Create a Microsoft Drive Mapping for the DocType."),
+				_("Create a SharePoint Mapping for the DocType."),
 			)
 		)
 	return {"findings": findings}

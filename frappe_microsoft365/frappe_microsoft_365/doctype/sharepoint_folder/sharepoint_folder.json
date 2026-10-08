@@ -23,10 +23,10 @@
    "fieldname": "about",
    "fieldtype": "HTML",
    "label": "About",
-   "options": "<div class='text-muted small' style='margin-bottom:8px'>Gives one record a folder in SharePoint. Pick the record, then <b>Save</b>: the folder is created where its Drive Mapping says, and the record's attachments move into it. To use a folder that already exists instead, paste it in <b>Existing Folder</b>.</div>"
+   "options": "<div class='text-muted small' style='margin-bottom:8px'>Gives one record a folder in SharePoint. Pick the record, then <b>Save</b>: the folder is created where its SharePoint Mapping says, and the record's attachments move into it. To use a folder that already exists instead, paste it in <b>Existing Folder</b>.</div>"
   },
   {
-   "description": "Only DocTypes with a Drive Mapping are offered.",
+   "description": "Only DocTypes with a SharePoint Mapping are offered.",
    "fieldname": "reference_doctype",
    "fieldtype": "Link",
    "in_list_view": 1,
@@ -104,9 +104,9 @@
   }
  ],
  "links": [],
- "modified": "2026-10-08 17:00:00",
+ "modified": "2026-10-08 19:00:00",
  "module": "Frappe Microsoft 365",
- "name": "Microsoft Drive Folder",
+ "name": "SharePoint Folder",
  "owner": "Administrator",
  "permissions": [
   {

@@ -291,7 +291,7 @@ Microsoft 365 Groups and their sites, those apps are where to look.
 
 ## Can attachments be stored in SharePoint or Teams instead of on the server?
 
-Yes. Create a Microsoft Drive Mapping for the DocType; each record gets a folder in
+Yes. Create a SharePoint Mapping for the DocType; each record gets a folder in
 the site or channel you choose, attachments move there, and files added from Teams appear on the
 record. It needs the `Sites.Selected` application permission and a per-site grant, never access
 to the whole tenant. See [SharePoint document storage](sharepoint-files.md).

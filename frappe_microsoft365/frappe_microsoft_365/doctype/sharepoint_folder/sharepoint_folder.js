@@ -1,8 +1,8 @@
-// Microsoft Drive Folder — one record's folder in SharePoint, made by the app or by hand.
+// SharePoint Folder — one record's folder in SharePoint, made by the app or by hand.
 
-frappe.ui.form.on("Microsoft Drive Folder", {
+frappe.ui.form.on("SharePoint Folder", {
 	setup(frm) {
-		// Only DocTypes that have an enabled Drive Mapping can have a folder.
+		// Only DocTypes that have an enabled SharePoint Mapping can have a folder.
 		frm.set_query("reference_doctype", () => ({
 			query: "frappe_microsoft365.microsoft_files.mapped_doctype_query",
 		}));

@@ -14,7 +14,7 @@ from frappe import _
 from frappe.model.document import Document
 
 
-class MicrosoftDriveFolder(Document):
+class SharePointFolder(Document):
 	def validate(self):
 		if self.item_id:
 			return  # made by the app, already resolved
@@ -24,7 +24,7 @@ class MicrosoftDriveFolder(Document):
 		row = files.mapping_for(self.reference_doctype)
 		if not row:
 			frappe.throw(
-				_("{0} has no enabled Microsoft Drive Mapping. Create one first.").format(
+				_("{0} has no enabled SharePoint Mapping. Create one first.").format(
 					self.reference_doctype
 				)
 			)

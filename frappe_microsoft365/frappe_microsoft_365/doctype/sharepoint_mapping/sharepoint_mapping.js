@@ -1,6 +1,6 @@
-// Microsoft Drive Mapping — one DocType's SharePoint destination, testable on its own.
+// SharePoint Mapping — one DocType's SharePoint destination, testable on its own.
 
-frappe.ui.form.on("Microsoft Drive Mapping", {
+frappe.ui.form.on("SharePoint Mapping", {
 	refresh(frm) {
 		if (frm.is_new()) {
 			frm.set_intro(

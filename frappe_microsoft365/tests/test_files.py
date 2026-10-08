@@ -54,10 +54,10 @@ def configure(test, **overrides):
 	doc.save()
 	frappe.clear_document_cache("Microsoft Settings", "Microsoft Settings")
 
-	frappe.db.delete("Microsoft Drive Mapping", {"name": MAPPED})
+	frappe.db.delete("SharePoint Mapping", {"name": MAPPED})
 	mapping = frappe.get_doc(
 		{
-			"doctype": "Microsoft Drive Mapping",
+			"doctype": "SharePoint Mapping",
 			"enabled": 1,
 			"reference_doctype": MAPPED,
 			"site_url": "https://contoso.sharepoint.com/sites/Sales",
@@ -70,7 +70,7 @@ def configure(test, **overrides):
 	).insert(ignore_permissions=True)
 
 	def restore():
-		frappe.db.delete("Microsoft Drive Mapping", {"name": MAPPED})
+		frappe.db.delete("SharePoint Mapping", {"name": MAPPED})
 		files.clear_mapping_cache()
 		d = frappe.get_doc("Microsoft Settings")
 		d.update(before)
@@ -564,7 +564,7 @@ class TestSettings(BaseTestCase):
 		with self.assertRaises(frappe.DuplicateEntryError):
 			frappe.get_doc(
 				{
-					"doctype": "Microsoft Drive Mapping",
+					"doctype": "SharePoint Mapping",
 					"reference_doctype": MAPPED,
 					"site_url": "https://contoso.sharepoint.com/sites/X",
 				}
@@ -574,7 +574,7 @@ class TestSettings(BaseTestCase):
 		with self.assertRaises(frappe.ValidationError):
 			frappe.get_doc(
 				{
-					"doctype": "Microsoft Drive Mapping",
+					"doctype": "SharePoint Mapping",
 					"reference_doctype": "Has Role",
 					"site_url": "https://contoso.sharepoint.com/sites/X",
 				}
@@ -602,7 +602,7 @@ class TestSettings(BaseTestCase):
 class TestOnDemand(FilesTestCase):
 	def setUp(self):
 		super().setUp()
-		mapping = frappe.get_doc("Microsoft Drive Mapping", MAPPED)
+		mapping = frappe.get_doc("SharePoint Mapping", MAPPED)
 		mapping.folder_creation = files.ON_DEMAND
 		mapping.save()
 
@@ -628,7 +628,7 @@ class TestOnDemand(FilesTestCase):
 		f = self.attach()
 		folder = frappe.get_doc(
 			{
-				"doctype": "Microsoft Drive Folder",
+				"doctype": "SharePoint Folder",
 				"reference_doctype": MAPPED,
 				"reference_name": self.todo.name,
 				"existing_folder": "Projects/Already there",
@@ -641,7 +641,7 @@ class TestOnDemand(FilesTestCase):
 	def test_a_folder_can_be_linked_by_its_sharepoint_address(self):
 		folder = frappe.get_doc(
 			{
-				"doctype": "Microsoft Drive Folder",
+				"doctype": "SharePoint Folder",
 				"reference_doctype": MAPPED,
 				"reference_name": self.todo.name,
 				"existing_folder": "https://contoso.sharepoint.com/sites/Sales/Shared%20Documents/Forms/AllItems.aspx?id=%2Fsites%2FSales%2FShared%20Documents%2FProjects%2FOld",
@@ -653,7 +653,7 @@ class TestOnDemand(FilesTestCase):
 	def test_a_new_folder_is_created_when_none_is_given(self):
 		folder = frappe.get_doc(
 			{
-				"doctype": "Microsoft Drive Folder",
+				"doctype": "SharePoint Folder",
 				"reference_doctype": MAPPED,
 				"reference_name": self.todo.name,
 			}
@@ -665,7 +665,7 @@ class TestOnDemand(FilesTestCase):
 		with self.assertRaises(frappe.DuplicateEntryError):
 			frappe.get_doc(
 				{
-					"doctype": "Microsoft Drive Folder",
+					"doctype": "SharePoint Folder",
 					"reference_doctype": MAPPED,
 					"reference_name": self.todo.name,
 				}

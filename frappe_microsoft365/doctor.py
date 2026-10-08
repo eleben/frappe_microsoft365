@@ -1321,7 +1321,7 @@ def check_files(settings, mappings, failed=0):
 				FAIL,
 				_("Document storage is on, but no DocType is mapped to SharePoint"),
 				_("Nothing will be moved until a mapping says which DocType goes where."),
-				_("Create a Microsoft Drive Mapping for each DocType whose attachments should go to SharePoint."),
+				_("Create a SharePoint Mapping for each DocType whose attachments should go to SharePoint."),
 			)
 		)
 
@@ -1508,10 +1508,10 @@ def _settings_config():
 
 
 def _files_mappings():
-	if not frappe.db.table_exists("Microsoft Drive Mapping"):
+	if not frappe.db.table_exists("SharePoint Mapping"):
 		return []
 	return frappe.get_all(
-		"Microsoft Drive Mapping", fields=["enabled", "reference_doctype", "site_url", "base_folder"]
+		"SharePoint Mapping", fields=["enabled", "reference_doctype", "site_url", "base_folder"]
 	)
 
 
@@ -1732,9 +1732,9 @@ def site_grant_powershell(mapping: str | None = None):
 	settings = frappe.get_cached_doc("Microsoft Settings")
 	filters = {"name": mapping} if mapping else {"enabled": 1}
 	urls = []
-	for url in frappe.get_all("Microsoft Drive Mapping", filters=filters, pluck="site_url"):
+	for url in frappe.get_all("SharePoint Mapping", filters=filters, pluck="site_url"):
 		if url and url not in urls:
 			urls.append(url)
 	if not urls:
-		frappe.throw(_("Create a Microsoft Drive Mapping with a SharePoint site first."))
+		frappe.throw(_("Create a SharePoint Mapping with a SharePoint site first."))
 	return {"script": powershell_for_site_grant(settings.client_id, urls), "sites": urls}

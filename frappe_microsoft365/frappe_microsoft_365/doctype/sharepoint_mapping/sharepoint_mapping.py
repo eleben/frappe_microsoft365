@@ -1,4 +1,4 @@
-"""Microsoft Drive Mapping — where one DocType's attachments are stored in SharePoint.
+"""SharePoint Mapping — where one DocType's attachments are stored in SharePoint.
 
 One record per DocType, named after it, so a DocType can never be mapped twice. Lives beside
 Microsoft Settings rather than inside it, like Microsoft Calendar: the settings hold the
@@ -11,7 +11,7 @@ from frappe import _
 from frappe.model.document import Document
 
 
-class MicrosoftDriveMapping(Document):
+class SharePointMapping(Document):
 	def validate(self):
 		meta = frappe.get_meta(self.reference_doctype)
 		if (
@@ -20,8 +20,8 @@ class MicrosoftDriveMapping(Document):
 			or self.reference_doctype
 			in (
 				"File",
-				"Microsoft Drive Folder",
-				"Microsoft Drive Mapping",
+				"SharePoint Folder",
+				"SharePoint Mapping",
 			)
 		):
 			frappe.throw(_("{0} cannot have its own SharePoint folders.").format(self.reference_doctype))

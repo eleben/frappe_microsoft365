@@ -4,12 +4,12 @@
 
 ### Added
 
-- **Document Storage**: a *Microsoft Drive Mapping* per DocType points it at a SharePoint site,
+- **Document Storage**: a *SharePoint Mapping* per DocType points it at a SharePoint site,
   library and base folder (a Teams channel's Files tab is just that), with its own Test, Site
   Grant Script and Move Existing Attachments; the global switch and options live in Microsoft
   Settings.
 - **Automatic or On demand** per mapping: on demand, a record's files move only once someone
-  creates its folder (from the record, or a Microsoft Drive Folder); a Microsoft Drive Folder can
+  creates its folder (from the record, or a SharePoint Folder); a SharePoint Folder can
   also link a folder that already exists in SharePoint. Each record gets its own folder; new
   attachments are moved there by a background job and keep opening from the form, and the copy
   on disk is removed unless *Keep a local copy* is ticked. Large files go through resumable

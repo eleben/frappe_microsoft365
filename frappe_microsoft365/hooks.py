@@ -45,7 +45,7 @@ extend_doctype_class = {
 }
 
 # The folder link is bookkeeping: it must never stop someone deleting the record it points at.
-ignore_links_on_delete = ["Microsoft Drive Folder"]
+ignore_links_on_delete = ["SharePoint Folder"]
 
 boot_session = "frappe_microsoft365.microsoft_files.boot_session"
 

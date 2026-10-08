@@ -11,7 +11,7 @@ frees disk space, which matters on hosted plans with a fixed quota (Frappe Cloud
 
 ## What happens
 
-1. A **Microsoft Drive Mapping**, one per DocType, points that DocType at a SharePoint site, a
+1. A **SharePoint Mapping**, one per DocType, points that DocType at a SharePoint site, a
    document library and a base folder. For a Teams channel, the library is `Documents` and the base
    folder is the channel's name.
 2. A record gets a folder under the base folder, named from a pattern (`{name}` by default, so
@@ -20,10 +20,10 @@ frees disk space, which matters on hosted plans with a fixed quota (Frappe Cloud
    - **Automatic**: on the record's first attachment. Every record of the DocType ends up in
      SharePoint.
    - **On demand**: only when someone asks, with **Create folder now** on the record's panel or by
-     adding a **Microsoft Drive Folder**. Records nobody asked about keep their files on the
+     adding a **SharePoint Folder**. Records nobody asked about keep their files on the
      server. Creating the folder also sends that record's existing attachments into it.
 
-   A Microsoft Drive Folder can also **link a folder that already exists**: paste its SharePoint
+   A SharePoint Folder can also **link a folder that already exists**: paste its SharePoint
    address (from the browser or *Copy link*) or its path in the library, e.g. `Projects/PRJ-0001`.
 3. When someone attaches a file to the record, a background job uploads it to that folder.
    The `File` row is then pointed at `/api/method/frappe_microsoft365.microsoft_files.open_file`.
@@ -75,7 +75,7 @@ asks for `Sites.ReadWrite.All`.
 2. Make sure **Tenant ID** in Microsoft Settings is the directory (tenant) ID, not `common`.
    Client-credential sign-in has no `/common` endpoint.
 3. In Microsoft Settings, tick **SharePoint document storage** and save. Then create a
-   **Microsoft Drive Mapping** (sidebar *SharePoint Storage → Drive Mappings*, or *Microsoft Settings → Document Storage → Drive Mappings*, then **Add**):
+   **SharePoint Mapping** (sidebar *SharePoint Storage → Mappings*, or *Microsoft Settings → Document Storage → Mappings*, then **Add**):
    - **DocType**: the DocType whose attachments go to SharePoint. The mapping is named after it,
      so each DocType can be mapped once.
    - **SharePoint Site URL**: in Teams, open the channel's *Files* tab and choose *Open in
