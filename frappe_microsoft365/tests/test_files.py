@@ -36,7 +36,6 @@ def configure(test, **overrides):
 			"files_delete_remote",
 		)
 	}
-	before_rows = [r.as_dict() for r in doc.get("files_mappings") or []]
 
 	doc.update(
 		{
@@ -51,38 +50,37 @@ def configure(test, **overrides):
 		}
 	)
 	doc.update(overrides)
-	doc.set(
-		"files_mappings",
-		[
-			{
-				"enabled": 1,
-				"reference_doctype": MAPPED,
-				"site_url": "https://contoso.sharepoint.com/sites/Sales",
-				"library": "Documents",
-				"base_folder": "Projects",
-				"folder_pattern": "{name}",
-				"site_id": "SITE",
-				"drive_id": "DRIVE",
-			}
-		],
-	)
 	doc.flags.ignore_permissions = True
 	doc.save()
 	frappe.clear_document_cache("Microsoft Settings", "Microsoft Settings")
 
+	frappe.db.delete("Microsoft Drive Mapping", {"name": MAPPED})
+	mapping = frappe.get_doc(
+		{
+			"doctype": "Microsoft Drive Mapping",
+			"enabled": 1,
+			"reference_doctype": MAPPED,
+			"site_url": "https://contoso.sharepoint.com/sites/Sales",
+			"library": "Documents",
+			"base_folder": "Projects",
+			"folder_pattern": "{name}",
+			"site_id": "SITE",
+			"drive_id": "DRIVE",
+		}
+	).insert(ignore_permissions=True)
+
 	def restore():
+		frappe.db.delete("Microsoft Drive Mapping", {"name": MAPPED})
+		files.clear_mapping_cache()
 		d = frappe.get_doc("Microsoft Settings")
 		d.update(before)
-		d.set(
-			"files_mappings", [{k: v for k, v in r.items() if k not in ("name", "idx")} for r in before_rows]
-		)
 		d.flags.ignore_validate = True
 		d.flags.ignore_permissions = True
 		d.save()
 		frappe.clear_document_cache("Microsoft Settings", "Microsoft Settings")
 
 	test.addCleanup(restore)
-	return doc
+	return mapping
 
 
 class FakeGraph:
@@ -534,31 +532,40 @@ class TestOpen(FilesTestCase):
 
 class TestSettings(BaseTestCase):
 	def test_changing_the_site_url_forgets_the_resolved_ids(self):
-		doc = configure(self)
-		doc.reload()
-		doc.files_mappings[0].site_url = "https://contoso.sharepoint.com/sites/Other"
-		doc.save()
-		doc.reload()
-		self.assertFalse(doc.files_mappings[0].site_id)
-		self.assertFalse(doc.files_mappings[0].drive_id)
+		mapping = configure(self)
+		mapping.site_url = "https://contoso.sharepoint.com/sites/Other"
+		mapping.save()
+		mapping.reload()
+		self.assertFalse(mapping.site_id)
+		self.assertFalse(mapping.drive_id)
 
 	def test_a_doctype_can_be_mapped_once(self):
-		doc = configure(self)
-		doc.append(
-			"files_mappings",
-			{"reference_doctype": MAPPED, "site_url": "https://contoso.sharepoint.com/sites/X"},
-		)
-		with self.assertRaises(frappe.ValidationError):
-			doc.save()
+		configure(self)
+		with self.assertRaises(frappe.DuplicateEntryError):
+			frappe.get_doc(
+				{
+					"doctype": "Microsoft Drive Mapping",
+					"reference_doctype": MAPPED,
+					"site_url": "https://contoso.sharepoint.com/sites/X",
+				}
+			).insert()
 
 	def test_child_tables_cannot_be_mapped(self):
-		doc = configure(self)
-		doc.append(
-			"files_mappings",
-			{"reference_doctype": "Has Role", "site_url": "https://contoso.sharepoint.com/sites/X"},
-		)
 		with self.assertRaises(frappe.ValidationError):
-			doc.save()
+			frappe.get_doc(
+				{
+					"doctype": "Microsoft Drive Mapping",
+					"reference_doctype": "Has Role",
+					"site_url": "https://contoso.sharepoint.com/sites/X",
+				}
+			).insert()
+
+	def test_saving_a_mapping_refreshes_the_cache(self):
+		mapping = configure(self)
+		self.assertEqual(files.mapping_for(MAPPED).base_folder, "Projects")
+		mapping.base_folder = "Archive"
+		mapping.save()
+		self.assertEqual(files.mapping_for(MAPPED).base_folder, "Archive")
 
 	def test_boot_lists_mapped_doctypes(self):
 		configure(self)

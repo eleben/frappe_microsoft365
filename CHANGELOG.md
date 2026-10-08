@@ -4,8 +4,10 @@
 
 ### Added
 
-- **Document Storage** in Microsoft Settings: map any DocType to a SharePoint site, library and
-  base folder (a Teams channel's Files tab is just that). Each record gets its own folder; new
+- **Document Storage**: a *Microsoft Drive Mapping* per DocType points it at a SharePoint site,
+  library and base folder (a Teams channel's Files tab is just that), with its own Test, Site
+  Grant Script and Move Existing Attachments; the global switch and options live in Microsoft
+  Settings. Each record gets its own folder; new
   attachments are moved there by a background job and keep opening from the form, and the copy
   on disk is removed unless *Keep a local copy* is ticked. Large files go through resumable
   upload sessions. Failed moves are marked on the File and retried hourly.

@@ -35,34 +35,6 @@ class MicrosoftSettings(Document):
 
 		self._reject_the_secret_id()
 		self._drop_capabilities_that_lost_their_prerequisite()
-		self._validate_files_mappings()
-
-	def _validate_files_mappings(self):
-		"""One row per DocType, only DocTypes that can carry attachments, and no stale ids.
-
-		The resolved site and drive ids are a cache of the URL and library name; editing either
-		has to drop them, or files keep flowing to the old library with nothing on screen saying so.
-		"""
-		before = {}
-		previous = self.get_doc_before_save()
-		if previous:
-			before = {row.name: row for row in previous.get("files_mappings") or []}
-
-		seen = set()
-		for row in self.get("files_mappings") or []:
-			if row.reference_doctype in seen:
-				frappe.throw(_("Row {0}: {1} is mapped twice.").format(row.idx, row.reference_doctype))
-			seen.add(row.reference_doctype)
-
-			meta = frappe.get_meta(row.reference_doctype)
-			if meta.istable or meta.issingle or row.reference_doctype in ("File", "Microsoft Drive Folder"):
-				frappe.throw(_("Row {0}: {1} cannot have its own SharePoint folders.").format(
-					row.idx, row.reference_doctype))
-
-			old = before.get(row.name)
-			if old and ((old.site_url or "") != (row.site_url or "") or (old.library or "") != (row.library or "")):
-				row.site_id = None
-				row.drive_id = None
 
 	def _drop_capabilities_that_lost_their_prerequisite(self):
 		"""Transcripts are reached through the meeting behind a join URL, so they cannot work

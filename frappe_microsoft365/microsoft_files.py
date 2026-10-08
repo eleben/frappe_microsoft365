@@ -1,6 +1,6 @@
 """SharePoint / Microsoft Teams document storage for Frappe attachments.
 
-A site picks DocTypes in Microsoft Settings > Document Storage and says where their files go:
+A site creates one Microsoft Drive Mapping per DocType, saying where its files go:
 a SharePoint site, a document library and a base folder (for a Teams channel, the channel's
 folder in the team's library). From then on:
 
@@ -110,12 +110,43 @@ def files_enabled(settings=None):
 	return bool(settings.enabled and settings.get("use_files"))
 
 
+MAPPING_CACHE_KEY = "frappe_microsoft365:drive_mappings"
+
+MAPPING_FIELDS = [
+	"name",
+	"enabled",
+	"reference_doctype",
+	"site_url",
+	"library",
+	"base_folder",
+	"folder_pattern",
+	"site_id",
+	"drive_id",
+]
+
+
+def _mappings():
+	"""Every Microsoft Drive Mapping, cached per site until one changes.
+
+	Read on every attachment and, through the "*" hooks, on every delete and rename on the site,
+	so it must not cost a query each time.
+	"""
+	cached = frappe.cache().get_value(MAPPING_CACHE_KEY)
+	if cached is None:
+		cached = frappe.get_all("Microsoft Drive Mapping", fields=MAPPING_FIELDS, order_by="name asc")
+		frappe.cache().set_value(MAPPING_CACHE_KEY, [dict(r) for r in cached])
+	return [frappe._dict(r) for r in cached]
+
+
+def clear_mapping_cache():
+	frappe.cache().delete_value(MAPPING_CACHE_KEY)
+
+
 def mapping_for(doctype, settings=None):
-	"""The enabled Document Storage row for a DocType, or None."""
+	"""The enabled Microsoft Drive Mapping for a DocType, or None."""
 	if not doctype:
 		return None
-	settings = settings or _settings()
-	for row in settings.get("files_mappings") or []:
+	for row in _mappings():
 		if row.enabled and row.reference_doctype == doctype:
 			return row
 	return None
@@ -125,7 +156,7 @@ def mapped_doctypes(settings=None):
 	settings = settings or _settings()
 	if not files_enabled(settings):
 		return []
-	return sorted({row.reference_doctype for row in settings.get("files_mappings") or [] if row.enabled})
+	return sorted({row.reference_doctype for row in _mappings() if row.enabled})
 
 
 def boot_session(bootinfo):
@@ -252,7 +283,7 @@ def resolve_drive(row):
 		"Microsoft Drive Mapping", row.name, {"site_id": site_id, "drive_id": drive_id}, update_modified=False
 	)
 	row.site_id, row.drive_id = site_id, drive_id
-	frappe.clear_document_cache("Microsoft Settings", "Microsoft Settings")
+	clear_mapping_cache()
 	return site_id, drive_id
 
 
@@ -1142,8 +1173,8 @@ PROBE_FOLDER = "frappe-connection-test"
 
 
 @frappe.whitelist(methods=["POST"])
-def test_connection():
-	"""Prove each mapping works end to end: token, site, library, base folder, write access.
+def test_connection(mapping: str | None = None):
+	"""Prove each mapping (or just ``mapping``) works end to end: token, site, library, folder, write.
 
 	Writes on purpose — a read-only grant passes every read and then fails on the first upload,
 	which is the failure this button exists to catch early. It creates and immediately removes a
@@ -1205,8 +1236,10 @@ def test_connection():
 			]
 		}
 
-	for row in settings.get("files_mappings") or []:
-		if not row.enabled:
+	for row in _mappings():
+		if mapping and row.name != mapping:
+			continue
+		if not row.enabled and not mapping:
 			continue
 		target = row.reference_doctype
 		try:
@@ -1258,7 +1291,7 @@ def test_connection():
 	if not findings:
 		findings.append(
 			finding(
-				"files.none", WARN, _("No DocType is mapped yet"), "", _("Add a row under Where Files Go.")
+				"files.none", WARN, _("No DocType is mapped yet"), "", _("Create a Microsoft Drive Mapping for the DocType.")
 			)
 		)
 	return {"findings": findings}

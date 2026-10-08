@@ -24,7 +24,6 @@
   "redirect_uri",
   "files_section",
   "files_help",
-  "files_mappings",
   "files_options_column",
   "files_keep_local_copy",
   "files_archive_links",
@@ -161,14 +160,7 @@
    "fieldname": "files_help",
    "fieldtype": "HTML",
    "label": "Document Storage Help",
-   "options": "<div class='text-muted' style='font-size: 13px; margin-bottom: 8px'>Each record of a mapped DocType gets its own folder, created on first use. New attachments are moved there in the background and open through Frappe for anyone allowed to read the record; files people add to the folder in Teams or SharePoint show in the record's <b>Files in Microsoft 365</b> panel. The Azure app needs the <b>Sites.Selected</b> application permission with admin consent, plus write access granted on each site \u2014 <b>Set Up</b> and <b>Run Diagnostics</b> walk through it.</div>"
-  },
-  {
-   "fieldname": "files_mappings",
-   "fieldtype": "Table",
-   "label": "Where Files Go",
-   "options": "Microsoft Drive Mapping",
-   "description": "One row per DocType. Edit DocType, site and folder right in the table, or open a row for every option. Rows are saved with these settings: click Save at the top when you are done."
+   "options": "<div class='text-muted' style='font-size: 13px; margin-bottom: 8px'>Which DocTypes are stored where is set in <a href='/app/microsoft-drive-mapping'><b>Microsoft Drive Mapping</b></a>, one record per DocType, each with its own <b>Test</b> button. Each record of a mapped DocType gets its own folder, created on first use. New attachments are moved there in the background and open through Frappe for anyone allowed to read the record; files people add to the folder in Teams or SharePoint show in the record's <b>Files in Microsoft 365</b> panel. The Azure app needs the <b>Sites.Selected</b> application permission under Microsoft Graph, with admin consent, plus write access granted on each site.</div>"
   },
   {
    "fieldname": "files_options_column",
@@ -223,7 +215,7 @@
  ],
  "issingle": 1,
  "links": [],
- "modified": "2026-10-08 00:00:00",
+ "modified": "2026-10-08 12:00:00",
  "module": "Frappe Microsoft 365",
  "name": "Microsoft Settings",
  "owner": "Administrator",

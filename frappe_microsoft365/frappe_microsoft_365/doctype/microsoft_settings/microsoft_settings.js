@@ -25,6 +25,11 @@ frappe.ui.form.on("Microsoft Settings", {
 		if (frm.doc.use_files) {
 			frm.add_custom_button(__("Test SharePoint Connection"), () => test_files(frm), __("Troubleshoot"));
 			frm.add_custom_button(__("SharePoint Site Grant Script"), () => site_grant_script(), __("Troubleshoot"));
+			frm.add_custom_button(
+				__("Drive Mappings"),
+				() => frappe.set_route("List", "Microsoft Drive Mapping"),
+				__("Document Storage")
+			);
 			frm.add_custom_button(__("Move Existing Attachments"), () => move_existing(frm), __("Document Storage"));
 			show_storage_summary(frm);
 		}

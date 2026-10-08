@@ -11,8 +11,8 @@ frees disk space, which matters on hosted plans with a fixed quota (Frappe Cloud
 
 ## What happens
 
-1. **Microsoft Settings → Document Storage** maps a DocType to a SharePoint site, a document
-   library and a base folder. For a Teams channel, the library is `Documents` and the base
+1. A **Microsoft Drive Mapping**, one per DocType, points that DocType at a SharePoint site, a
+   document library and a base folder. For a Teams channel, the library is `Documents` and the base
    folder is the channel's name.
 2. The first time a record needs one, the app creates a folder for it under the base folder.
    The folder name comes from a pattern, `{name}` by default, so `PRJ/2026/001` becomes
@@ -40,7 +40,7 @@ even then the file goes to the site's recycle bin. Deleting a record keeps its f
 | A file behind a field (image, signature, an `Attach` field) | Stays local: print formats and web pages fetch these without a session |
 | A web link attached to a record | Stays a link. With **Also copy linked files into SharePoint** ticked, its target is downloaded once and archived in the folder; the link itself is kept |
 | Attachments on unmapped DocTypes | Untouched |
-| Attachments that existed before the DocType was mapped | Untouched until **Document Storage → Move Existing Attachments** |
+| Attachments that existed before the DocType was mapped | Untouched until **Move Existing Attachments** on the mapping |
 
 Uploads under 4 MB go up in a single request; larger ones go through a resumable upload session
 in 10 MB parts. A failed upload leaves the file where it was, marked `Failed` with the reason,
@@ -66,8 +66,10 @@ asks for `Sites.ReadWrite.All`.
    request.
 2. Make sure **Tenant ID** in Microsoft Settings is the directory (tenant) ID, not `common`.
    Client-credential sign-in has no `/common` endpoint.
-3. In Microsoft Settings, tick **SharePoint document storage** and add a row under **Where Files
-   Go**:
+3. In Microsoft Settings, tick **SharePoint document storage** and save. Then create a
+   **Microsoft Drive Mapping** (*Microsoft Settings → Document Storage → Drive Mappings → Add*):
+   - **DocType**: the DocType whose attachments go to SharePoint. The mapping is named after it,
+     so each DocType can be mapped once.
    - **SharePoint Site URL**: in Teams, open the channel's *Files* tab and choose *Open in
      SharePoint*. Paste the address; anything after `/sites/<name>` is ignored.
    - **Document Library**: `Documents` for Teams.
@@ -75,8 +77,9 @@ asks for `Sites.ReadWrite.All`.
      The folder is created if it is missing.
    - **Folder Name Pattern**: `{name}` by default. Use `{fieldname}` for any field, e.g.
      `{name} - {customer}`.
-4. Save, then **Troubleshoot → SharePoint Site Grant Script**. A SharePoint or Global
-   administrator runs the script in Microsoft Graph PowerShell. For each mapped site it runs:
+4. Save the mapping, then click **Site Grant Script** on it. A SharePoint or Global administrator
+   runs the script in Microsoft Graph PowerShell. (*Microsoft Settings → Troubleshoot → SharePoint
+   Site Grant Script* gives one script for every mapped site.) For each site it runs:
 
    ```powershell
    Connect-MgGraph -Scopes "Sites.FullControl.All"
@@ -87,10 +90,11 @@ asks for `Sites.ReadWrite.All`.
    }
    ```
 
-5. **Troubleshoot → Test SharePoint Connection.** It signs in as the app, resolves each site and
-   library, and creates and removes a `frappe-connection-test` folder in each base folder, so a
-   read-only grant shows up now rather than on the first upload.
-6. Optionally, **Document Storage → Move Existing Attachments** queues what is already attached.
+5. **Test** on the mapping (or *Microsoft Settings → Troubleshoot → Test SharePoint Connection*
+   for all of them). It signs in as the app, resolves the site and library, and creates and
+   removes a `frappe-connection-test` folder in the base folder, so a read-only grant shows up now
+   rather than on the first upload.
+6. Optionally, **Move Existing Attachments** on the mapping queues what is already attached.
 
 ### Private and shared channels
 
@@ -102,7 +106,7 @@ with the channel's files in a folder of that site's `Documents` library. To use 
   SharePoint*.
 - **Library**: `Documents`. **Base Folder**: the channel name.
 - **Grant the app that site.** A grant on the parent team's site does not reach a private
-  channel's site. The Site Grant Script lists every site in your mappings.
+  channel's site. The mapping's Site Grant Script names that site.
 
 The app reads and writes as itself, not as a channel member. Who can open the files from Frappe
 is therefore decided by Frappe permissions on the DocType, not by channel membership. Restrict

@@ -1320,8 +1320,8 @@ def check_files(settings, mappings, failed=0):
 				"files.mappings",
 				FAIL,
 				_("Document storage is on, but no DocType is mapped to SharePoint"),
-				_("Nothing will be moved until a row says which DocType goes where."),
-				_("Add a row under Microsoft Settings > Document Storage > Where Files Go."),
+				_("Nothing will be moved until a mapping says which DocType goes where."),
+				_("Create a Microsoft Drive Mapping for each DocType whose attachments should go to SharePoint."),
 			)
 		)
 
@@ -1508,16 +1508,11 @@ def _settings_config():
 
 
 def _files_mappings():
-	settings = frappe.get_cached_doc("Microsoft Settings")
-	return [
-		{
-			"enabled": row.enabled,
-			"reference_doctype": row.reference_doctype,
-			"site_url": row.site_url,
-			"base_folder": row.base_folder,
-		}
-		for row in settings.get("files_mappings") or []
-	]
+	if not frappe.db.table_exists("Microsoft Drive Mapping"):
+		return []
+	return frappe.get_all(
+		"Microsoft Drive Mapping", fields=["enabled", "reference_doctype", "site_url", "base_folder"]
+	)
 
 
 def _connected_app_config(name):
@@ -1731,14 +1726,15 @@ def app_only_powershell(mailboxes: str | list | None = None, send_as: int = 0):
 
 
 @frappe.whitelist()
-def site_grant_powershell():
-	"""The site-grant script for the mapped SharePoint sites. System Manager only."""
+def site_grant_powershell(mapping: str | None = None):
+	"""The site-grant script for one mapping's site, or every mapped site. System Manager only."""
 	frappe.only_for("System Manager")
 	settings = frappe.get_cached_doc("Microsoft Settings")
+	filters = {"name": mapping} if mapping else {"enabled": 1}
 	urls = []
-	for row in settings.get("files_mappings") or []:
-		if row.enabled and row.site_url and row.site_url not in urls:
-			urls.append(row.site_url)
+	for url in frappe.get_all("Microsoft Drive Mapping", filters=filters, pluck="site_url"):
+		if url and url not in urls:
+			urls.append(url)
 	if not urls:
-		frappe.throw(_("Map at least one DocType to a SharePoint site first."))
+		frappe.throw(_("Create a Microsoft Drive Mapping with a SharePoint site first."))
 	return {"script": powershell_for_site_grant(settings.client_id, urls), "sites": urls}
