@@ -141,10 +141,12 @@ frappe.provide("frappe_microsoft365.files");
 								)} ↗</a>`
 							: ""
 					}
+					<button class="btn btn-xs btn-default ms365-help" title="${esc(__("How this panel works"))}">?</button>
 				</div>
 				${table}`);
 
 			this.$body.find(".ms365-refresh").on("click", () => this.load());
+			this.$body.find(".ms365-help").on("click", () => show_help());
 			this.$body.find(".ms365-dir").on("click", (e) => {
 				const $a = $(e.currentTarget);
 				this.trail.push({ id: $a.data("id"), name: $a.data("name") });
@@ -155,6 +157,33 @@ frappe.provide("frappe_microsoft365.files");
 				this.load();
 			});
 		}
+	}
+
+	function show_help() {
+		frappe.msgprint({
+			title: __("Files in Microsoft 365"),
+			indicator: "blue",
+			message: [
+				`<p>${__(
+					"This record's files are kept in its own folder in SharePoint (the Teams channel's Files tab), not on this server.",
+				)}</p><ul>`,
+				`<li>${__(
+					"<b>Attach</b> files from the sidebar as usual. A few seconds later they move into this folder; the sidebar link keeps working.",
+				)}</li>`,
+				`<li>${__(
+					"Files saved into the folder from <b>Teams or SharePoint</b> appear here after <b>Refresh</b>. Ones marked <i>attachment</i> were attached in this system.",
+				)}</li>`,
+				`<li>${__(
+					"Click a name to open it, the arrow to download it, a folder to go into it. Anyone who can read this record can open its files here.",
+				)}</li>`,
+				`<li>${__(
+					"<b>Open in SharePoint</b> opens the folder itself, for people with access to the channel. Renaming or moving the folder there does not break this link.",
+				)}</li>`,
+				`<li>${__(
+					"Removing an attachment here does not delete the SharePoint copy unless an administrator has turned that on.",
+				)}</li></ul>`,
+			].join(""),
+		});
 	}
 
 	frappe_microsoft365.files.Panel = Panel;

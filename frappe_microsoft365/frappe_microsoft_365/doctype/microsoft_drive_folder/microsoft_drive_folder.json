@@ -5,6 +5,7 @@
  "doctype": "DocType",
  "engine": "InnoDB",
  "field_order": [
+  "about",
   "reference_doctype",
   "reference_name",
   "folder_name",
@@ -17,6 +18,12 @@
   "folder_path"
  ],
  "fields": [
+  {
+   "fieldname": "about",
+   "fieldtype": "HTML",
+   "label": "About",
+   "options": "<div class='text-muted small' style='margin-bottom:8px'>Created automatically the first time a record needs its SharePoint folder; there is nothing to fill in. The link uses the folder's Microsoft item id, so it keeps working if the folder is renamed or moved inside the library. Deleting this record only forgets the link: the SharePoint folder and its files stay, and the next attachment creates a new folder.</div>"
+  },
   {
    "fieldname": "reference_doctype",
    "fieldtype": "Link",
@@ -89,7 +96,7 @@
  ],
  "in_create": 1,
  "links": [],
- "modified": "2026-10-07 00:00:00",
+ "modified": "2026-10-08 14:00:00",
  "module": "Frappe Microsoft 365",
  "name": "Microsoft Drive Folder",
  "owner": "Administrator",

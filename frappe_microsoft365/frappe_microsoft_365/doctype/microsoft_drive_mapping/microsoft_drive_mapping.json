@@ -6,6 +6,9 @@
  "doctype": "DocType",
  "engine": "InnoDB",
  "field_order": [
+  "how_it_works_section",
+  "how_it_works",
+  "main_section",
   "enabled",
   "reference_doctype",
   "site_url",
@@ -20,6 +23,22 @@
   "drive_id"
  ],
  "fields": [
+  {
+   "collapsible": 1,
+   "fieldname": "how_it_works_section",
+   "fieldtype": "Section Break",
+   "label": "How it works"
+  },
+  {
+   "fieldname": "how_it_works",
+   "fieldtype": "HTML",
+   "label": "How It Works",
+   "options": "<div class='text-muted small'><ol style='padding-left:18px;margin:0'><li>Each record of the DocType below gets its own folder in SharePoint, created the first time it gets an attachment. The folder is named by <b>Folder Name Pattern</b>.</li><li>Files attached to those records (sidebar attachments, not image or Attach fields) are moved into the folder in the background a few seconds later. They keep opening from the record, through the ERP's own permissions.</li><li>Files people save into the folder from Teams or SharePoint show on the record in the <b>Files in Microsoft 365</b> panel.</li><li>Nothing is deleted from SharePoint unless <b>Microsoft Settings</b> says so, and then only to the site recycle bin.</li></ol><p style='margin:8px 0 0'><b>Setting up:</b> paste the site URL (for a Teams channel: Files tab \u203a Open in SharePoint), save, click <b>Site Grant Script</b> and have a SharePoint admin run it, then click <b>Test</b>. <b>Standard channel:</b> keep <i>Group record folders in a base folder</i> on and use the channel name as Base Folder. <b>Private or shared channel:</b> use the channel's own site and untick it, so record folders sit directly in the channel.</p></div>"
+  },
+  {
+   "fieldname": "main_section",
+   "fieldtype": "Section Break"
+  },
   {
    "default": "1",
    "fieldname": "enabled",
@@ -112,7 +131,7 @@
    "link_fieldname": "reference_doctype"
   }
  ],
- "modified": "2026-10-08 13:00:00",
+ "modified": "2026-10-08 14:00:00",
  "module": "Frappe Microsoft 365",
  "name": "Microsoft Drive Mapping",
  "naming_rule": "By fieldname",
