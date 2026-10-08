@@ -118,6 +118,7 @@ MAPPING_FIELDS = [
 	"reference_doctype",
 	"site_url",
 	"library",
+	"folder_creation",
 	"use_base_folder",
 	"base_folder",
 	"folder_pattern",
@@ -141,6 +142,15 @@ def _mappings():
 
 def clear_mapping_cache():
 	frappe.cache().delete_value(MAPPING_CACHE_KEY)
+
+
+AUTOMATIC = "Automatic"
+ON_DEMAND = "On demand"
+
+
+def is_on_demand(row):
+	"""On demand: a record gets a folder only when someone asks for one; until then its files stay put."""
+	return (row.get("folder_creation") or AUTOMATIC) == ON_DEMAND
 
 
 def mapping_for(doctype, settings=None):
@@ -397,11 +407,7 @@ def ensure_folder(doctype, name):
 	if not row:
 		frappe.throw(_("{0} is not mapped to SharePoint in Microsoft Settings.").format(_(doctype)))
 
-	_site_id, drive_id = resolve_drive(row)
-	doc = frappe.get_doc(doctype, name)
-	folder_name = render_pattern(row.folder_pattern, doc)
-	segments = [*base_segments(row), folder_name]
-	item = ensure_path(drive_id, segments)
+	values = new_folder_values(row, doctype, name)
 
 	# A second job may have finished first; one record per document, whoever wins.
 	existing = get_folder(doctype, name)
@@ -409,18 +415,108 @@ def ensure_folder(doctype, name):
 		return existing
 
 	record = frappe.get_doc(
-		{
-			"doctype": "Microsoft Drive Folder",
-			"reference_doctype": doctype,
-			"reference_name": name,
-			"folder_name": folder_name,
-			"drive_id": drive_id,
-			"item_id": item["id"],
-			"web_url": item.get("webUrl"),
-			"folder_path": "/".join(segments),
-		}
+		{"doctype": "Microsoft Drive Folder", "reference_doctype": doctype, "reference_name": name, **values}
 	).insert(ignore_permissions=True)
 	return frappe._dict(record.as_dict())
+
+
+def new_folder_values(row, doctype, name):
+	"""Create (or find) the record's folder where its mapping says, and return the fields to store."""
+	_site_id, drive_id = resolve_drive(row)
+	doc = frappe.get_doc(doctype, name)
+	folder_name = render_pattern(row.folder_pattern, doc)
+	segments = [*base_segments(row), folder_name]
+	item = ensure_path(drive_id, segments)
+	return {
+		"folder_name": folder_name,
+		"drive_id": drive_id,
+		"item_id": item["id"],
+		"web_url": item.get("webUrl"),
+		"folder_path": "/".join(segments),
+	}
+
+
+def existing_folder_values(row, location):
+	"""Find a folder someone points at — a SharePoint link, or a path inside the mapped library.
+
+	Accepts what people actually copy: the folder's address from the browser (including the
+	``AllItems.aspx?id=/sites/…`` form), a Copy link / Share link, or a plain path such as
+	``Projects/PROJ-0001``. Only a folder is accepted, and only one the app can reach.
+	"""
+	import base64
+	from urllib.parse import parse_qs, unquote
+
+	_site_id, drive_id = resolve_drive(row)
+	value = (location or "").strip()
+	item = None
+	if value.lower().startswith(("http://", "https://")):
+		parsed = urlparse(value)
+		ids = parse_qs(parsed.query).get("id")
+		path = unquote(ids[0] if ids else parsed.path).rstrip("/")
+		drive = graph.graph_request("GET", f"/drives/{drive_id}", APP_ONLY, params={"$select": "webUrl"})
+		root = unquote(urlparse(drive.get("webUrl") or "").path).rstrip("/")
+		if root and path.lower().startswith(root.lower() + "/"):
+			item = _get_by_path(drive_id, [p for p in path[len(root) + 1 :].split("/") if p])
+		else:
+			# A sharing link (…/:f:/s/…) names no path; Graph resolves those through /shares.
+			token = "u!" + base64.urlsafe_b64encode(value.encode()).decode().rstrip("=")
+			try:
+				item = graph.graph_request(
+					"GET",
+					f"/shares/{token}/driveItem",
+					APP_ONLY,
+					params={"$select": "id,name,folder,webUrl,parentReference"},
+				)
+			except MsGraphError:
+				_forget_message()
+				item = None
+	else:
+		item = _get_by_path(drive_id, [p for p in value.replace("\\", "/").split("/") if p.strip()])
+
+	if not item:
+		frappe.throw(
+			_(
+				"Could not find that folder. Paste its address from SharePoint, or its path inside the {0} library, e.g. Projects/PRJ-0001. It must be on a site the app has been granted."
+			).format(row.library or "Documents")
+		)
+	if "folder" not in item:
+		frappe.throw(_("{0} is a file, not a folder.").format(item.get("name")))
+	return {
+		"folder_name": item.get("name"),
+		"drive_id": (item.get("parentReference") or {}).get("driveId") or drive_id,
+		"item_id": item["id"],
+		"web_url": item.get("webUrl"),
+		"folder_path": value,
+	}
+
+
+def queue_record(doctype, name):
+	"""Queue the attachments of one record that are still on this server. Returns how many."""
+	settings = _settings()
+	queued = 0
+	for row in frappe.get_all(
+		"File",
+		filters={
+			"attached_to_doctype": doctype,
+			"attached_to_name": name,
+			"is_folder": 0,
+			"custom_microsoft_status": ["in", ["", None, FAILED]],
+		},
+		fields=[
+			"name",
+			"file_url",
+			"attached_to_doctype",
+			"attached_to_name",
+			"attached_to_field",
+			"is_folder",
+		],
+	):
+		if not _eligible(frappe._dict(row), settings):
+			continue
+		frappe.db.set_value("File", row.name, "custom_microsoft_status", PENDING, update_modified=False)
+		enqueue_upload(row.name)
+		queued += 1
+	return queued
 
 
 def _forget_folder(folder):
@@ -466,7 +562,11 @@ def _eligible(file_doc, settings=None):
 	# attachments move.
 	if file_doc.attached_to_field:
 		return False
-	if not mapping_for(file_doc.attached_to_doctype, settings):
+	row = mapping_for(file_doc.attached_to_doctype, settings)
+	if not row:
+		return False
+	if is_on_demand(row) and not get_folder(file_doc.attached_to_doctype, file_doc.attached_to_name):
+		# Nobody has asked for this record to live in SharePoint yet.
 		return False
 	if is_local(file_doc):
 		return True
@@ -1065,7 +1165,7 @@ def list_folder(doctype: str, name: str, subfolder: str | None = None):
 	folder = get_folder(doctype, name)
 	can_write = frappe.has_permission(doctype, "write", doc=name)
 	if not folder:
-		return {"exists": False, "can_create": can_write}
+		return {"exists": False, "can_create": can_write, "on_demand": is_on_demand(mapping_for(doctype))}
 
 	parent_id = folder.item_id
 	if subfolder:
@@ -1124,10 +1224,15 @@ def list_folder(doctype: str, name: str, subfolder: str | None = None):
 
 @frappe.whitelist(methods=["POST"])
 def create_folder(doctype: str, name: str):
-	"""Create a record's folder now, rather than on its first attachment."""
+	"""Create a record's folder now, and send its attachments that are still here into it.
+
+	For an On demand mapping this is how a record starts living in SharePoint; for an Automatic
+	one it only does early what the first attachment would have done.
+	"""
 	_check_record(doctype, name, "write")
 	folder = ensure_folder(doctype, name)
-	return {"web_url": folder.web_url, "folder_name": folder.folder_name}
+	queued = queue_record(doctype, name)
+	return {"web_url": folder.web_url, "folder_name": folder.folder_name, "queued": queued}
 
 
 def _assert_inside(folder, item_id):

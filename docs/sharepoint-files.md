@@ -14,9 +14,17 @@ frees disk space, which matters on hosted plans with a fixed quota (Frappe Cloud
 1. A **Microsoft Drive Mapping**, one per DocType, points that DocType at a SharePoint site, a
    document library and a base folder. For a Teams channel, the library is `Documents` and the base
    folder is the channel's name.
-2. The first time a record needs one, the app creates a folder for it under the base folder.
-   The folder name comes from a pattern, `{name}` by default, so `PRJ/2026/001` becomes
-   `Projects/PRJ-2026-001`.
+2. A record gets a folder under the base folder, named from a pattern (`{name}` by default, so
+   `PRJ/2026/001` becomes `Projects/PRJ-2026-001`). When depends on the mapping's **Folder
+   Creation**:
+   - **Automatic**: on the record's first attachment. Every record of the DocType ends up in
+     SharePoint.
+   - **On demand**: only when someone asks, with **Create folder now** on the record's panel or by
+     adding a **Microsoft Drive Folder**. Records nobody asked about keep their files on the
+     server. Creating the folder also sends that record's existing attachments into it.
+
+   A Microsoft Drive Folder can also **link a folder that already exists**: paste its SharePoint
+   address (from the browser or *Copy link*) or its path in the library, e.g. `Projects/PRJ-0001`.
 3. When someone attaches a file to the record, a background job uploads it to that folder.
    The `File` row is then pointed at `/api/method/frappe_microsoft365.microsoft_files.open_file`.
    The attachment still opens from the form, previews, prints and emails as before, and the copy

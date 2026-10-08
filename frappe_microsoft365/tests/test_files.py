@@ -106,6 +106,8 @@ class FakeGraph:
 	):
 		assert caller is APP_ONLY, "document storage must always call as the application"
 		self.calls.append((method, path))
+		if method == "GET" and path == "/drives/DRIVE":
+			return {"webUrl": "https://contoso.sharepoint.com/sites/Sales/Shared%20Documents"}
 		if method == "GET" and path == "/drives/DRIVE/root:/Projects/" + path.rsplit("/", 1)[-1]:
 			return {"id": "FOLDER", "folder": {}, "webUrl": "https://contoso.sharepoint.com/f"}
 		if method == "GET" and ":/Projects/" in path:
@@ -423,7 +425,9 @@ class TestUpload(FilesTestCase):
 		mapping.use_base_folder = 0
 		mapping.save()
 		self.assertEqual(files.base_segments(files.mapping_for(MAPPED)), [])
-		with patch.object(files, "ensure_path", return_value={"id": "TOP", "webUrl": "https://contoso.sharepoint.com/top"}) as ensure:
+		with patch.object(
+			files, "ensure_path", return_value={"id": "TOP", "webUrl": "https://contoso.sharepoint.com/top"}
+		) as ensure:
 			folder = files.ensure_folder(MAPPED, self.todo.name)
 		ensure.assert_called_once_with("DRIVE", [files.safe_name(self.todo.name)])
 		self.assertEqual(folder.folder_path, files.safe_name(self.todo.name))
@@ -588,6 +592,79 @@ class TestSettings(BaseTestCase):
 		boot = frappe._dict()
 		files.boot_session(boot)
 		self.assertEqual(boot.microsoft365_files_doctypes, [MAPPED])
+
+
+class TestOnDemand(FilesTestCase):
+	def setUp(self):
+		super().setUp()
+		mapping = frappe.get_doc("Microsoft Drive Mapping", MAPPED)
+		mapping.folder_creation = files.ON_DEMAND
+		mapping.save()
+
+	def test_attachments_stay_put_until_the_record_has_a_folder(self):
+		f = self.attach()
+		self.enqueued.assert_not_called()
+		self.assertFalse(frappe.db.get_value("File", f.name, "custom_microsoft_status"))
+		self.assertIsNone(files.get_folder(MAPPED, self.todo.name))
+
+	def test_create_folder_now_sends_the_records_files(self):
+		f = self.attach()
+		out = files.create_folder(MAPPED, self.todo.name)
+		self.assertEqual(out["queued"], 1)
+		self.enqueued.assert_called_once_with(f.name)
+		# and from then on, new attachments follow
+		g = self.attach()
+		self.enqueued.assert_called_with(g.name)
+
+	def test_panel_says_files_stay_here(self):
+		self.assertTrue(files.list_folder(MAPPED, self.todo.name)["on_demand"])
+
+	def test_a_folder_can_be_linked_by_path(self):
+		f = self.attach()
+		folder = frappe.get_doc(
+			{
+				"doctype": "Microsoft Drive Folder",
+				"reference_doctype": MAPPED,
+				"reference_name": self.todo.name,
+				"existing_folder": "Projects/Already there",
+			}
+		).insert()
+		self.assertEqual(folder.item_id, "FOLDER")
+		self.assertEqual(folder.drive_id, "DRIVE")
+		self.enqueued.assert_called_once_with(f.name)
+
+	def test_a_folder_can_be_linked_by_its_sharepoint_address(self):
+		folder = frappe.get_doc(
+			{
+				"doctype": "Microsoft Drive Folder",
+				"reference_doctype": MAPPED,
+				"reference_name": self.todo.name,
+				"existing_folder": "https://contoso.sharepoint.com/sites/Sales/Shared%20Documents/Forms/AllItems.aspx?id=%2Fsites%2FSales%2FShared%20Documents%2FProjects%2FOld",
+			}
+		).insert()
+		self.assertEqual(folder.item_id, "FOLDER")
+		self.assertIn(("GET", "/drives/DRIVE/root:/Projects/Old:"), self.graph.calls)
+
+	def test_a_new_folder_is_created_when_none_is_given(self):
+		folder = frappe.get_doc(
+			{
+				"doctype": "Microsoft Drive Folder",
+				"reference_doctype": MAPPED,
+				"reference_name": self.todo.name,
+			}
+		).insert()
+		self.assertEqual(folder.folder_path, f"Projects/{files.safe_name(self.todo.name)}")
+
+	def test_a_record_gets_one_folder(self):
+		files.create_folder(MAPPED, self.todo.name)
+		with self.assertRaises(frappe.DuplicateEntryError):
+			frappe.get_doc(
+				{
+					"doctype": "Microsoft Drive Folder",
+					"reference_doctype": MAPPED,
+					"reference_name": self.todo.name,
+				}
+			).insert()
 
 
 class TestQuietLookups(BaseTestCase):

@@ -11,6 +11,7 @@
   "main_section",
   "enabled",
   "reference_doctype",
+  "folder_creation",
   "site_url",
   "library",
   "column_break_where",
@@ -33,7 +34,7 @@
    "fieldname": "how_it_works",
    "fieldtype": "HTML",
    "label": "How It Works",
-   "options": "<div class='text-muted small'><ol style='padding-left:18px;margin:0'><li>Each record of the DocType below gets its own folder in SharePoint, created the first time it gets an attachment. The folder is named by <b>Folder Name Pattern</b>.</li><li>Files attached to those records (sidebar attachments, not image or Attach fields) are moved into the folder in the background a few seconds later. They keep opening from the record, through the ERP's own permissions.</li><li>Files people save into the folder from Teams or SharePoint show on the record in the <b>Files in Microsoft 365</b> panel.</li><li>Nothing is deleted from SharePoint unless <b>Microsoft Settings</b> says so, and then only to the site recycle bin.</li></ol><p style='margin:8px 0 0'><b>Setting up:</b> paste the site URL (for a Teams channel: Files tab \u203a Open in SharePoint), save, click <b>Site Grant Script</b> and have a SharePoint admin run it, then click <b>Test</b>. <b>Standard channel:</b> keep <i>Group record folders in a base folder</i> on and use the channel name as Base Folder. <b>Private or shared channel:</b> use the channel's own site and untick it, so record folders sit directly in the channel.</p></div>"
+   "options": "<div class='text-muted small'><ol style='padding-left:18px;margin:0'><li>Each record of the DocType below can have its own folder in SharePoint, named by <b>Folder Name Pattern</b>. With <b>Folder Creation</b> set to <i>Automatic</i> it is created on the record's first attachment; with <i>On demand</i>, only when someone clicks <b>Create folder now</b> on the record or adds a Microsoft Drive Folder.</li><li>Files attached to a record that has a folder (sidebar attachments, not image or Attach fields) are moved into it in the background a few seconds later. They keep opening from the record, through the ERP's own permissions.</li><li>Files people save into the folder from Teams or SharePoint show on the record in the <b>Files in Microsoft 365</b> panel.</li><li>Nothing is deleted from SharePoint unless <b>Microsoft Settings</b> says so, and then only to the site recycle bin.</li></ol><p style='margin:8px 0 0'><b>Setting up:</b> paste the site URL (for a Teams channel: Files tab \u203a Open in SharePoint), save, click <b>Site Grant Script</b> and have a SharePoint admin run it, then click <b>Test</b>. <b>Standard channel:</b> keep <i>Group record folders in a base folder</i> on and use the channel name as Base Folder. <b>Private or shared channel:</b> use the channel's own site and untick it, so record folders sit directly in the channel.</p></div>"
   },
   {
    "fieldname": "main_section",
@@ -57,6 +58,16 @@
    "reqd": 1,
    "set_only_once": 1,
    "unique": 1
+  },
+  {
+   "default": "Automatic",
+   "description": "Automatic: every record gets a folder on its first attachment, and all its attachments move to SharePoint. On demand: nothing moves until someone creates the record's folder (Create folder now on the record, or a new Microsoft Drive Folder); from then on that record's attachments move, and other records stay on this server.",
+   "fieldname": "folder_creation",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Folder Creation",
+   "options": "Automatic\nOn demand",
+   "reqd": 1
   },
   {
    "description": "The site that owns the library, e.g. https://contoso.sharepoint.com/sites/Sales. For a Microsoft Teams team, open the channel's Files tab and choose Open in SharePoint.",
@@ -131,7 +142,7 @@
    "link_fieldname": "reference_doctype"
   }
  ],
- "modified": "2026-10-08 14:00:00",
+ "modified": "2026-10-08 15:00:00",
  "module": "Frappe Microsoft 365",
  "name": "Microsoft Drive Mapping",
  "naming_rule": "By fieldname",

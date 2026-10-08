@@ -8,6 +8,7 @@
   "about",
   "reference_doctype",
   "reference_name",
+  "existing_folder",
   "folder_name",
   "column_break_ref",
   "web_url",
@@ -22,18 +23,19 @@
    "fieldname": "about",
    "fieldtype": "HTML",
    "label": "About",
-   "options": "<div class='text-muted small' style='margin-bottom:8px'>Created automatically the first time a record needs its SharePoint folder; there is nothing to fill in. The link uses the folder's Microsoft item id, so it keeps working if the folder is renamed or moved inside the library. Deleting this record only forgets the link: the SharePoint folder and its files stay, and the next attachment creates a new folder.</div>"
+   "options": "<div class='text-muted small' style='margin-bottom:8px'>Links one record to its folder in SharePoint. With an <b>Automatic</b> mapping these are created for you on a record's first attachment; with <b>On demand</b>, a record gets one only when someone asks: here, or with <b>Create folder now</b> on the record's Files in Microsoft 365 panel. To add one here, pick the record, then either leave <b>Existing Folder</b> empty to create the folder the mapping describes, or paste the address or path of a folder that already exists to link it. Once saved, the record's attachments that are still on this server move into the folder. The link uses the folder's Microsoft item id, so it survives renaming or moving the folder inside the library. Deleting this record only forgets the link: the SharePoint folder and its files stay.</div>"
   },
   {
+   "description": "A DocType that has a Microsoft Drive Mapping.",
    "fieldname": "reference_doctype",
    "fieldtype": "Link",
    "in_list_view": 1,
    "in_standard_filter": 1,
    "label": "Reference DocType",
    "options": "DocType",
-   "read_only": 1,
    "reqd": 1,
-   "search_index": 1
+   "search_index": 1,
+   "set_only_once": 1
   },
   {
    "fieldname": "reference_name",
@@ -42,9 +44,16 @@
    "in_standard_filter": 1,
    "label": "Reference Name",
    "options": "reference_doctype",
-   "read_only": 1,
    "reqd": 1,
-   "search_index": 1
+   "search_index": 1,
+   "set_only_once": 1
+  },
+  {
+   "depends_on": "eval:doc.__islocal",
+   "description": "Optional. To link a folder that already exists, paste its SharePoint address (from the browser, or Copy link) or its path in the library, e.g. Projects/PROJ-0001. Leave empty to create the folder the mapping describes.",
+   "fieldname": "existing_folder",
+   "fieldtype": "Data",
+   "label": "Existing Folder"
   },
   {
    "fieldname": "folder_name",
@@ -94,14 +103,14 @@
    "read_only": 1
   }
  ],
- "in_create": 1,
  "links": [],
- "modified": "2026-10-08 14:00:00",
+ "modified": "2026-10-08 15:00:00",
  "module": "Frappe Microsoft 365",
  "name": "Microsoft Drive Folder",
  "owner": "Administrator",
  "permissions": [
   {
+   "create": 1,
    "delete": 1,
    "export": 1,
    "read": 1,

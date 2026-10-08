@@ -71,7 +71,11 @@ frappe.provide("frappe_microsoft365.files");
 					? __(
 							"This record's SharePoint folder was deleted or moved out of the library.",
 						)
-					: __("No SharePoint folder yet. It is created with the first attachment.");
+					: data.on_demand
+						? __(
+								"This record's files stay on this server. Create a SharePoint folder to move them there; new attachments will follow.",
+							)
+						: __("No SharePoint folder yet. It is created with the first attachment.");
 				const btn = data.can_create
 					? `<button class="btn btn-xs btn-default ms365-create">${__("Create folder now")}</button>`
 					: "";
@@ -83,7 +87,19 @@ frappe.provide("frappe_microsoft365.files");
 						method: `${METHOD}.create_folder`,
 						args: { doctype: this.frm.doctype, name: this.frm.docname },
 						freeze: true,
-						callback: () => this.load(),
+						freeze_message: __("Creating the folder in SharePoint…"),
+						callback: (r) => {
+							const queued = (r.message || {}).queued || 0;
+							if (queued) {
+								frappe.show_alert({
+									message: __("{0} attachment(s) are moving to the folder.", [
+										queued,
+									]),
+									indicator: "green",
+								});
+							}
+							this.load();
+						},
 					}),
 				);
 				return;
