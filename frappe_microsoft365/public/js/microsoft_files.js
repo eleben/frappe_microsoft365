@@ -43,10 +43,74 @@ frappe.provide("frappe_microsoft365.files");
 		constructor(frm) {
 			this.frm = frm;
 			this.trail = []; // [{id, name}] subfolders opened from the record's folder
-			frm.dashboard.show();
-			this.$body = $(frm.dashboard.add_section("", __("Files in Microsoft 365")));
-			this.$body.addClass("microsoft365-files");
+			this.$body = this.mount();
 			this.load();
+		}
+
+		// Its own block at the top of the form's first tab. Not frm.dashboard: on a DocType
+		// with a Connections tab (Project, Customer, …) Frappe puts the dashboard inside that
+		// tab, where nobody looks for files.
+		mount() {
+			const frm = this.frm;
+			frm.$wrapper.find(".microsoft365-files").remove();
+			const $section = $(`
+				<div class="microsoft365-files" style="padding:12px var(--padding-md, 15px);border-bottom:1px solid var(--border-color)">
+					<div style="font-weight:600;margin-bottom:6px">${__("Files in Microsoft 365")}</div>
+					<div class="microsoft365-files-body"></div>
+				</div>`);
+			const tabs = frm.layout && frm.layout.tabs;
+			const target =
+				tabs && tabs.length ? tabs[0].wrapper : frm.layout.wrapper.find(".form-page");
+			$(target).prepend($section);
+			return $section.find(".microsoft365-files-body");
+		}
+
+		// The same actions in the toolbar, so they are found without scrolling to the panel.
+		toolbar(data) {
+			const frm = this.frm;
+			const group = __("SharePoint");
+			frm.remove_custom_button(__("Create folder"), group);
+			frm.remove_custom_button(__("Open in SharePoint"), group);
+			frm.remove_custom_button(__("Show files"), group);
+			if (!data.exists && data.can_create) {
+				frm.add_custom_button(__("Create folder"), () => this.create(), group);
+			}
+			if (data.exists && data.web_url) {
+				frm.add_custom_button(
+					__("Open in SharePoint"),
+					() => window.open(data.web_url, "_blank"),
+					group,
+				);
+			}
+			frm.add_custom_button(
+				__("Show files"),
+				() => {
+					frm.layout.tabs && frm.layout.tabs.length && frm.layout.tabs[0].set_active();
+					frm.$wrapper
+						.find(".microsoft365-files")[0]
+						?.scrollIntoView({ behavior: "smooth" });
+				},
+				group,
+			);
+		}
+
+		create() {
+			frappe.call({
+				method: `${METHOD}.create_folder`,
+				args: { doctype: this.frm.doctype, name: this.frm.docname },
+				freeze: true,
+				freeze_message: __("Creating the folder in SharePoint…"),
+				callback: (r) => {
+					const queued = (r.message || {}).queued || 0;
+					if (queued) {
+						frappe.show_alert({
+							message: __("{0} attachment(s) are moving to the folder.", [queued]),
+							indicator: "green",
+						});
+					}
+					this.load();
+				},
+			});
 		}
 
 		load() {
@@ -66,6 +130,7 @@ frappe.provide("frappe_microsoft365.files");
 		}
 
 		render(data) {
+			if (!this.trail.length) this.toolbar(data);
 			if (!data.exists) {
 				const msg = data.missing
 					? __(
@@ -82,26 +147,7 @@ frappe.provide("frappe_microsoft365.files");
 				this.$body.html(
 					`<div class="small text-muted" style="display:flex;gap:10px;align-items:center">${esc(msg)} ${btn}</div>`,
 				);
-				this.$body.find(".ms365-create").on("click", () =>
-					frappe.call({
-						method: `${METHOD}.create_folder`,
-						args: { doctype: this.frm.doctype, name: this.frm.docname },
-						freeze: true,
-						freeze_message: __("Creating the folder in SharePoint…"),
-						callback: (r) => {
-							const queued = (r.message || {}).queued || 0;
-							if (queued) {
-								frappe.show_alert({
-									message: __("{0} attachment(s) are moving to the folder.", [
-										queued,
-									]),
-									indicator: "green",
-								});
-							}
-							this.load();
-						},
-					}),
-				);
+				this.$body.find(".ms365-create").on("click", () => this.create());
 				return;
 			}
 
