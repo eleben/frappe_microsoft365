@@ -135,9 +135,37 @@ def _mappings():
 	"""
 	cached = frappe.cache().get_value(MAPPING_CACHE_KEY)
 	if cached is None:
-		cached = frappe.get_all("SharePoint Mapping", fields=MAPPING_FIELDS, order_by="name asc")
-		frappe.cache().set_value(MAPPING_CACHE_KEY, [dict(r) for r in cached])
+		rows = [
+			dict(r) for r in frappe.get_all("SharePoint Mapping", fields=MAPPING_FIELDS, order_by="name asc")
+		]
+		roles = {}
+		if frappe.db.table_exists("SharePoint Mapping Role"):
+			for r in frappe.get_all(
+				"SharePoint Mapping Role",
+				filters={"parenttype": "SharePoint Mapping"},
+				fields=["parent", "role"],
+			):
+				roles.setdefault(r.parent, []).append(r.role)
+		for row in rows:
+			row["folder_roles"] = roles.get(row["name"], [])
+		cached = rows
+		frappe.cache().set_value(MAPPING_CACHE_KEY, cached)
 	return [frappe._dict(r) for r in cached]
+
+
+def can_create_folder(doctype, name, user=None):
+	"""May this user create a SharePoint folder for this record?
+
+	Needs edit rights on the record, and either System Manager or one of the roles the mapping
+	lists under Who can create folders. Creating a folder moves the record's files out of the
+	ERP, which is an administrator's decision unless the mapping says otherwise.
+	"""
+	user = user or frappe.session.user
+	row = mapping_for(doctype)
+	if not row or not frappe.has_permission(doctype, "write", doc=name, user=user):
+		return False
+	roles = set(frappe.get_roles(user))
+	return "System Manager" in roles or bool(roles & set(row.get("folder_roles") or []))
 
 
 def clear_mapping_cache():
@@ -1203,7 +1231,7 @@ def list_folder(doctype: str, name: str, subfolder: str | None = None):
 	"""What is in a record's SharePoint folder (or one of its subfolders), for the form panel."""
 	_check_record(doctype, name)
 	folder = get_folder(doctype, name)
-	can_write = frappe.has_permission(doctype, "write", doc=name)
+	can_write = can_create_folder(doctype, name)
 	if not folder:
 		return {"exists": False, "can_create": can_write, "on_demand": is_on_demand(mapping_for(doctype))}
 
@@ -1270,6 +1298,12 @@ def create_folder(doctype: str, name: str):
 	one it only does early what the first attachment would have done.
 	"""
 	_check_record(doctype, name, "write")
+	if not get_folder(doctype, name) and not can_create_folder(doctype, name):
+		raise frappe.PermissionError(
+			_(
+				"Only System Managers and the roles listed on the {0} SharePoint Mapping can create folders."
+			).format(_(doctype))
+		)
 	folder = ensure_folder(doctype, name)
 	queued = queue_record(doctype, name)
 	return {"web_url": folder.web_url, "folder_name": folder.folder_name, "queued": queued}

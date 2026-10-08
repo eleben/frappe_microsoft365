@@ -12,6 +12,7 @@
   "enabled",
   "reference_doctype",
   "folder_creation",
+  "folder_roles",
   "site_url",
   "library",
   "column_break_where",
@@ -133,6 +134,13 @@
    "fieldtype": "Data",
    "label": "Drive ID",
    "read_only": 1
+  },
+  {
+   "description": "Who may click <b>Create folder</b> on a record that has no folder yet. They must also be able to edit the record.<br><b>Empty:</b> System Managers only.<br><b>Roles listed:</b> System Managers, plus users with any of these roles.",
+   "fieldname": "folder_roles",
+   "fieldtype": "Table MultiSelect",
+   "label": "Who can create folders",
+   "options": "SharePoint Mapping Role"
   }
  ],
  "links": [
@@ -142,7 +150,7 @@
    "link_fieldname": "reference_doctype"
   }
  ],
- "modified": "2026-10-08 21:00:00",
+ "modified": "2026-10-08 22:00:00",
  "module": "Frappe Microsoft 365",
  "name": "SharePoint Mapping",
  "naming_rule": "By fieldname",

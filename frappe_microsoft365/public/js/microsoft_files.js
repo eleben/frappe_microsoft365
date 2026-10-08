@@ -132,15 +132,20 @@ frappe.provide("frappe_microsoft365.files");
 		render(data) {
 			if (!this.trail.length) this.toolbar(data);
 			if (!data.exists) {
-				const msg = data.missing
-					? __(
-							"This record's SharePoint folder was deleted or moved out of the library.",
-						)
+				const kind = __(this.frm.doctype);
+				let msg = data.missing
+					? __("This {0}'s SharePoint folder was deleted or moved out of the library.", [
+							kind,
+						])
 					: data.on_demand
 						? __(
-								"This record's files stay on this server. Create a SharePoint folder to move them there; new attachments will follow.",
+								"This {0}'s files stay on this server. Create a SharePoint folder to move them there; new attachments will follow.",
+								[kind],
 							)
 						: __("No SharePoint folder yet. It is created with the first attachment.");
+				if (!data.can_create && (data.on_demand || data.missing)) {
+					msg += " " + __("Ask a System Manager to create one.");
+				}
 				const btn = data.can_create
 					? `<button class="btn btn-xs btn-default ms365-create">${__("Create folder now")}</button>`
 					: "";

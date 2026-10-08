@@ -23,6 +23,9 @@ frees disk space, which matters on hosted plans with a fixed quota (Frappe Cloud
      adding a **SharePoint Folder**. Records nobody asked about keep their files on the
      server. Creating the folder also sends that record's existing attachments into it.
 
+   Who may create folders is set per mapping in **Who can create folders**: empty means System
+   Managers only; listed roles may too. Either way the user must be able to edit the record.
+
    A SharePoint Folder can also **link a folder that already exists**: paste its SharePoint
    address (from the browser or *Copy link*) or its path in the library, e.g. `Projects/PRJ-0001`.
 3. When someone attaches a file to the record, a background job uploads it to that folder.

@@ -57,6 +57,7 @@ def configure(test, **overrides):
 	frappe.clear_document_cache("Microsoft Settings", "Microsoft Settings")
 
 	frappe.db.delete("SharePoint Mapping", {"name": MAPPED})
+	frappe.db.delete("SharePoint Mapping Role", {"parent": MAPPED})
 	mapping = frappe.get_doc(
 		{
 			"doctype": "SharePoint Mapping",
@@ -73,6 +74,7 @@ def configure(test, **overrides):
 
 	def restore():
 		frappe.db.delete("SharePoint Mapping", {"name": MAPPED})
+		frappe.db.delete("SharePoint Mapping Role", {"parent": MAPPED})
 		files.clear_mapping_cache()
 		d = frappe.get_doc("Microsoft Settings")
 		d.update(before)
@@ -826,6 +828,57 @@ class TestOnDemand(FilesTestCase):
 					"reference_name": self.todo.name,
 				}
 			).insert()
+
+
+class TestFolderPermissions(FilesTestCase):
+	STAFF = "ms365-staff@example.com"
+
+	ROLE = "SharePoint Folder Test Role"
+
+	def setUp(self):
+		super().setUp()
+		if not frappe.db.exists("Role", self.ROLE):
+			frappe.get_doc({"doctype": "Role", "role_name": self.ROLE, "desk_access": 1}).insert(
+				ignore_permissions=True
+			)
+		if not frappe.db.exists("User", self.STAFF):
+			frappe.get_doc(
+				{"doctype": "User", "email": self.STAFF, "first_name": "Staff", "send_welcome_email": 0}
+			).insert(ignore_permissions=True)
+		user = frappe.get_doc("User", self.STAFF)
+		user.set("roles", [])
+		user.append("roles", {"role": "Desk User"})
+		user.append("roles", {"role": self.ROLE})
+		user.save(ignore_permissions=True)
+		frappe.set_user(self.STAFF)
+		self.addCleanup(frappe.set_user, "Administrator")
+		self.mine = frappe.get_doc({"doctype": "ToDo", "description": "staff's own"}).insert()
+		frappe.set_user("Administrator")
+
+	def test_system_managers_can_create_folders(self):
+		self.assertTrue(files.can_create_folder(MAPPED, self.mine.name, user="Administrator"))
+
+	def test_other_users_cannot_by_default(self):
+		self.assertTrue(frappe.has_permission(MAPPED, "write", doc=self.mine.name, user=self.STAFF))
+		self.assertFalse(files.can_create_folder(MAPPED, self.mine.name, user=self.STAFF))
+		frappe.set_user(self.STAFF)
+		self.assertFalse(files.list_folder(MAPPED, self.mine.name)["can_create"])
+		with self.assertRaises(frappe.PermissionError):
+			files.create_folder(MAPPED, self.mine.name)
+
+	def test_a_listed_role_may_create_folders(self):
+		mapping = frappe.get_doc("SharePoint Mapping", MAPPED)
+		mapping.append("folder_roles", {"role": self.ROLE})
+		mapping.save()
+		self.assertTrue(files.can_create_folder(MAPPED, self.mine.name, user=self.STAFF))
+
+	def test_a_listed_role_still_needs_edit_rights_on_the_record(self):
+		mapping = frappe.get_doc("SharePoint Mapping", MAPPED)
+		mapping.append("folder_roles", {"role": self.ROLE})
+		mapping.save()
+		others = frappe.get_doc({"doctype": "ToDo", "description": "admin's"}).insert()
+		if not frappe.has_permission(MAPPED, "write", doc=others.name, user=self.STAFF):
+			self.assertFalse(files.can_create_folder(MAPPED, others.name, user=self.STAFF))
 
 
 class TestQuietLookups(BaseTestCase):
