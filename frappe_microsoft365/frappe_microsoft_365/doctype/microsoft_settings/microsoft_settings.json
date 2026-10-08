@@ -16,7 +16,6 @@
   "use_sso",
   "use_files",
   "files_summary",
-  "capabilities_help",
   "app_section",
   "tenant_id",
   "client_id",
@@ -52,7 +51,7 @@
    "fieldname": "capabilities_section",
    "fieldtype": "Section Break",
    "label": "Capabilities",
-   "description": "Pick what you want. The Azure permissions follow from what you tick."
+   "description": "Pick what you want. The Azure permissions follow from what you tick.<br>Use <b>Set Up</b> to create what each capability needs. Nothing existing is ever modified."
   },
   {
    "fieldname": "use_calendar",
@@ -115,12 +114,6 @@
    "fieldtype": "HTML",
    "label": "SharePoint Attachments Summary",
    "depends_on": "use_files"
-  },
-  {
-   "fieldname": "capabilities_help",
-   "fieldtype": "HTML",
-   "label": "Capabilities Help",
-   "options": "<div class='text-muted' style='font-size:12px'>Use <b>Set Up</b> to create what each capability needs. Nothing existing is ever modified.</div>"
   },
   {
    "fieldname": "app_section",
@@ -230,7 +223,7 @@
  ],
  "issingle": 1,
  "links": [],
- "modified": "2026-10-08 23:00:00",
+ "modified": "2026-10-08 23:30:00",
  "module": "Frappe Microsoft 365",
  "name": "Microsoft Settings",
  "owner": "Administrator",
