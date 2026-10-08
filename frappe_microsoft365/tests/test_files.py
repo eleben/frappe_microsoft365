@@ -176,9 +176,7 @@ class FilesTestCase(BaseTestCase):
 
 class TestNames(BaseTestCase):
 	def test_slashes_from_naming_series_become_hyphens(self):
-		self.assertEqual(
-			files.safe_name("PO/2026/0042-A"), "PO-2026-0042-A"
-		)
+		self.assertEqual(files.safe_name("PO/2026/0042-A"), "PO-2026-0042-A")
 
 	def test_characters_sharepoint_refuses_are_replaced(self):
 		self.assertEqual(files.safe_name('a"b*c:d<e>f?g\\h|i#j%k'), "a-b-c-d-e-f-g-h-i-j-k")
@@ -550,6 +548,23 @@ class TestSettings(BaseTestCase):
 		boot = frappe._dict()
 		files.boot_session(boot)
 		self.assertEqual(boot.microsoft365_files_doctypes, [MAPPED])
+
+
+class TestTokenRoles(BaseTestCase):
+	@staticmethod
+	def _token(payload):
+		import base64
+		import json
+
+		body = base64.urlsafe_b64encode(json.dumps(payload).encode()).decode().rstrip("=")
+		return f"header.{body}.signature"
+
+	def test_roles_are_read_from_the_payload(self):
+		self.assertEqual(files.token_roles(self._token({"roles": ["Sites.Selected"]})), ["Sites.Selected"])
+
+	def test_no_roles_or_garbage_gives_empty(self):
+		self.assertEqual(files.token_roles(self._token({"aud": "x"})), [])
+		self.assertEqual(files.token_roles("not-a-jwt"), [])
 
 
 class TestDoctorFiles(BaseTestCase):

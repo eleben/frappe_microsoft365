@@ -1082,7 +1082,7 @@ def test_connection():
 	which is the failure this button exists to catch early. It creates and immediately removes a
 	folder named PROBE_FOLDER in each base folder (it lands in the site recycle bin).
 	"""
-	from frappe_microsoft365.doctor import FAIL, PASS, WARN, explain_error, finding
+	from frappe_microsoft365.doctor import FAIL, PASS, SITES_SELECTED_DOC, WARN, explain_error, finding
 
 	frappe.only_for("System Manager")
 	settings = graph.get_settings()
@@ -1092,7 +1092,7 @@ def test_connection():
 
 	try:
 		graph.clear_app_token_cache()
-		graph.get_app_access_token()
+		token = graph.get_app_access_token()
 	except Exception as e:
 		explained = explain_error(str(e))
 		fix = (
@@ -1111,6 +1111,27 @@ def test_connection():
 					str(e),
 					fix,
 					explained.get("doc") or "",
+				)
+			]
+		}
+
+	roles = token_roles(token)
+	if not ({"Sites.Selected", "Sites.ReadWrite.All", "Sites.FullControl.All"} & set(roles)):
+		# SharePoint answers a token with no site permission at all with a bare 401
+		# "generalException", which reads like an outage. Say what it is instead.
+		return {
+			"findings": [
+				finding(
+					"files.consent",
+					FAIL,
+					_("The app signed in, but its token carries no SharePoint permission"),
+					_("Application permissions in the token: {0}.").format(", ".join(roles) or _("none")),
+					_(
+						"In Entra > App registrations > this app > API permissions, add Microsoft Graph > "
+						"Application permissions > Sites.Selected (Application, not Delegated), then click "
+						"Grant admin consent so its status reads Granted. Run this test again a minute later."
+					),
+					SITES_SELECTED_DOC,
 				)
 			]
 		}
@@ -1174,7 +1195,29 @@ def test_connection():
 	return {"findings": findings}
 
 
+def token_roles(token):
+	"""The application permissions ("roles" claim) in an access token. Pure; never logs the token.
+
+	Only the payload is decoded and nothing is verified: this is for telling an admin what
+	Microsoft granted, not for trusting the token, which Graph itself validates on every call.
+	"""
+	import base64
+	import json
+
+	try:
+		payload = token.split(".")[1]
+		payload += "=" * (-len(payload) % 4)
+		return list(json.loads(base64.urlsafe_b64decode(payload)).get("roles") or [])
+	except Exception:
+		return []
+
+
 def _site_fix(message):
+	if "401" in message:
+		return _(
+			"SharePoint did not accept the app's token. Check that Sites.Selected is an Application "
+			"permission with admin consent granted, then wait a minute and test again."
+		)
 	if "403" in message or "accessDenied" in message or "Forbidden" in message:
 		return _(
 			"The app has not been granted this site. Add the Sites.Selected application permission with "
