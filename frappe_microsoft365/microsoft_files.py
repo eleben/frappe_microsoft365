@@ -830,13 +830,14 @@ def queue_existing(doctype: str | None = None, limit: int = 500):
 def storage_summary():
 	"""Counts by status, for the Settings form. System Manager."""
 	frappe.only_for("System Manager")
-	rows = frappe.get_all(
-		"File",
-		filters={"custom_microsoft_status": ["is", "set"]},
-		fields=["custom_microsoft_status as status", "count(name) as count"],
-		group_by="custom_microsoft_status",
-	)
-	return {r.status: r.count for r in rows}
+	# One count per status rather than a GROUP BY: newer Frappe refuses SQL functions written as
+	# strings in fields, and the dict form it wants instead does not exist on v15.
+	counts = {}
+	for status in (STORED, ARCHIVED, PENDING, FAILED):
+		count = frappe.db.count("File", {"custom_microsoft_status": status})
+		if count:
+			counts[status] = count
+	return counts
 
 
 # --- reading -----------------------------------------------------------------------------

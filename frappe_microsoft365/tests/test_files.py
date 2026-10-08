@@ -437,6 +437,14 @@ class TestUpload(FilesTestCase):
 		files.upload_file(f.name)
 		self.assertEqual(len(self.graph.calls), calls)
 
+	def test_storage_summary_counts_by_status(self):
+		f = self.attach()
+		files.upload_file(f.name)
+		self.attach()  # left Pending: upload is mocked out
+		summary = files.storage_summary()
+		self.assertGreaterEqual(summary.get(files.STORED, 0), 1)
+		self.assertGreaterEqual(summary.get(files.PENDING, 0), 1)
+
 	def test_get_content_reads_from_sharepoint(self):
 		f = self.attach(content=b"hello from teams", name="note.txt")
 		files.upload_file(f.name)
