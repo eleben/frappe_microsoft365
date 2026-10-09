@@ -46,7 +46,12 @@ function show_folders(frm) {
 		const esc = (v) => frappe.utils.escape_html(v == null ? "" : String(v));
 		const cell = (html, cls = "col-xs-4") =>
 			`<div class="col grid-static-col ${cls}"><div class="static-area ellipsis">${html}</div></div>`;
+		const check = (name) =>
+			`<div class="row-check col"><input type="checkbox" class="grid-row-check ms365-check"${
+				name ? ` data-name="${esc(name)}"` : ""
+			} tabIndex="-1"></div>`;
 		const head = `<div class="grid-row"><div class="data-row row m-0">
+			${check()}
 			<div class="row-index col"><span>${__("No.")}</span></div>
 			${cell(esc(__("Record")))}${cell(esc(__("Folder")))}${cell(esc(__("SharePoint")), "col-xs-3")}
 		</div></div>`;
@@ -54,6 +59,7 @@ function show_folders(frm) {
 			.map(
 				(r, n) => `<div class="grid-row ms365-row" data-name="${esc(r.name)}" style="cursor:pointer">
 				<div class="data-row row m-0">
+					${check(r.name)}
 					<div class="row-index col"><span>${n + 1}</span></div>
 					${cell(esc(r.reference_name))}
 					${cell(`<span title="${esc(r.folder_path || "")}">${esc(r.folder_name || r.folder_path || "")}</span>`)}
@@ -82,14 +88,24 @@ function show_folders(frm) {
 			<div class="small form-clickable-section grid-footer">
 				<div class="flex justify-between">
 					<div class="grid-buttons">
+						<button type="button" class="btn btn-xs btn-danger ms365-delete hidden">${__("Delete")}</button>
 						<button type="button" class="btn btn-xs btn-secondary ms365-add">${__("Add Row")}</button>
 					</div>
 					<div class="text-muted">${more}</div>
 				</div>
 			</div>
 		</div>`);
+		const $checks = () => $wrapper.find(".grid-body .ms365-check");
+		const selected = () => $checks().filter(":checked").map((_, el) => $(el).data("name")).get();
+		const sync = () => $wrapper.find(".ms365-delete").toggleClass("hidden", !selected().length);
+		$wrapper.find(".grid-heading-row .ms365-check").on("change", (e) => {
+			$checks().prop("checked", e.target.checked);
+			sync();
+		});
+		$checks().on("change", sync);
+		$wrapper.find(".ms365-delete").on("click", () => remove_folders(frm, selected()));
 		$wrapper.find(".ms365-row").on("click", (e) => {
-			if ($(e.target).closest(".ms365-open").length) return;
+			if ($(e.target).closest(".ms365-open, .row-check").length) return;
 			frappe.set_route("Form", "SharePoint Folder", $(e.currentTarget).data("name"));
 		});
 		$wrapper.find(".ms365-add").on("click", () => add_folder(frm));
@@ -97,6 +113,28 @@ function show_folders(frm) {
 			frappe.set_route("List", "SharePoint Folder", filters),
 		);
 	});
+}
+
+// Delete: removes only this system's link to each folder. The folder and its files stay in
+// SharePoint, and attachments already stored there keep opening; a record whose link is gone
+// gets a folder again the next time it needs one (Automatic) or someone creates one (On demand).
+function remove_folders(frm, names) {
+	if (!names.length) return;
+	frappe.confirm(
+		__(
+			"Remove the link to {0} folder(s)? The folders and their files stay in SharePoint, and files already stored there keep opening.",
+			[names.length],
+		),
+		() =>
+			Promise.all(
+				names.map((name) =>
+					frappe.call({
+						method: "frappe.client.delete",
+						args: { doctype: "SharePoint Folder", name },
+					}),
+				),
+			).finally(() => show_folders(frm)),
+	);
 }
 
 // Add Row: pick the record, and optionally a folder that already exists; the SharePoint Folder
