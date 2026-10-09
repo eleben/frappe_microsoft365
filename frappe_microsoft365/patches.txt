@@ -7,3 +7,4 @@ frappe_microsoft365.patches.rename_drive_doctypes_to_sharepoint
 # Patches added in this section will be executed after doctypes are migrated
 frappe_microsoft365.patches.clear_legacy_default_scopes
 frappe_microsoft365.patches.drive_mappings_to_own_doctype
+frappe_microsoft365.patches.files_options_to_sharepoint_settings

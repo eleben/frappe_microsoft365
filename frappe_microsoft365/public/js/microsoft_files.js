@@ -123,7 +123,7 @@ frappe.provide("frappe_microsoft365.files");
 				error: () =>
 					this.$body.html(
 						`<div class="text-muted small">${__(
-							"Could not read the SharePoint folder. Microsoft Settings > Troubleshoot > Test SharePoint Connection says why.",
+							"Could not read the SharePoint folder. SharePoint Settings > Test Connection says why.",
 						)}</div>`,
 					),
 			});
@@ -254,6 +254,35 @@ frappe.provide("frappe_microsoft365.files");
 	}
 
 	frappe_microsoft365.files.Panel = Panel;
+
+	// "Attachments in SharePoint: Stored: 12 · Failed: 1". Shown on SharePoint Settings, and under
+	// the capability's tickbox on Microsoft Settings, where `link` adds the way to its settings.
+	function render_summary($wrapper, opts = {}) {
+		frappe.call({
+			method: `${METHOD}.storage_summary`,
+			callback: (r) => {
+				const c = r.message || {};
+				const parts = ["Stored", "Archived", "Pending", "Failed"]
+					.filter((k) => c[k])
+					.map((k) => `${__(k)}: <b>${c[k]}</b>`);
+				if (c.Failed) {
+					parts.push(`<a href="/app/file?custom_microsoft_status=Failed">${__("see failed")}</a>`);
+				}
+				const counts = parts.length
+					? `${__("Attachments in SharePoint")}: ${parts.join(" · ")}`
+					: __("No attachments in SharePoint yet.");
+				const link = opts.link
+					? `<div><a href="/app/sharepoint-settings">${__("SharePoint Settings")} →</a></div>`
+					: "";
+				const style = opts.link ? "margin:-4px 0 8px 24px" : "margin-bottom:8px";
+				$wrapper.html(
+					`<div class="small text-muted" style="${style}">${counts}${link}</div>`,
+				);
+			},
+		});
+	}
+
+	frappe_microsoft365.files.render_summary = render_summary;
 
 	// A file is moved a few seconds after it is attached, by which time the sidebar already
 	// shows its old /private/files link. The server announces the move on the document's

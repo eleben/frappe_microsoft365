@@ -21,22 +21,23 @@ from frappe_microsoft365.tests.base import BaseTestCase
 MAPPED = "ToDo"
 
 
+STORAGE_OPTIONS = (
+	"files_keep_local_copy",
+	"files_archive_links",
+	"files_delete_remote",
+	"files_on_uninstall",
+)
+
+
 def configure(test, **overrides):
-	"""Turn Document Storage on with ToDo mapped, restoring the previous settings afterwards."""
+	"""Turn Document Storage on with ToDo mapped, restoring the previous settings afterwards.
+
+	Overrides for SharePoint Settings options (files_*) go there; the rest to Microsoft Settings.
+	"""
 	doc = frappe.get_doc("Microsoft Settings")
-	before = {
-		k: doc.get(k)
-		for k in (
-			"enabled",
-			"tenant_id",
-			"client_id",
-			"use_files",
-			"files_keep_local_copy",
-			"files_archive_links",
-			"files_delete_remote",
-			"files_on_uninstall",
-		)
-	}
+	before = {k: doc.get(k) for k in ("enabled", "tenant_id", "client_id", "use_files")}
+	storage = frappe.get_doc("SharePoint Settings")
+	storage_before = {k: storage.get(k) for k in STORAGE_OPTIONS}
 
 	doc.update(
 		{
@@ -45,16 +46,18 @@ def configure(test, **overrides):
 			"client_id": "9f0b1c2d-0000-4000-8000-000000000002",
 			"client_secret": "a-secret~value.not-a-guid",
 			"use_files": 1,
-			"files_keep_local_copy": 0,
-			"files_archive_links": 0,
-			"files_delete_remote": 0,
-			"files_on_uninstall": None,
 		}
 	)
-	doc.update(overrides)
+	doc.update({k: v for k, v in overrides.items() if k not in STORAGE_OPTIONS})
 	doc.flags.ignore_permissions = True
 	doc.save()
 	frappe.clear_document_cache("Microsoft Settings", "Microsoft Settings")
+
+	storage.update({k: None if k == "files_on_uninstall" else 0 for k in STORAGE_OPTIONS})
+	storage.update({k: v for k, v in overrides.items() if k in STORAGE_OPTIONS})
+	storage.flags.ignore_permissions = True
+	storage.save()
+	frappe.clear_document_cache("SharePoint Settings", "SharePoint Settings")
 
 	frappe.db.delete("SharePoint Mapping", {"name": MAPPED})
 	frappe.db.delete("SharePoint Mapping Role", {"parent": MAPPED})
@@ -82,6 +85,11 @@ def configure(test, **overrides):
 		d.flags.ignore_permissions = True
 		d.save()
 		frappe.clear_document_cache("Microsoft Settings", "Microsoft Settings")
+		s = frappe.get_doc("SharePoint Settings")
+		s.update(storage_before)
+		s.flags.ignore_permissions = True
+		s.save()
+		frappe.clear_document_cache("SharePoint Settings", "SharePoint Settings")
 
 	test.addCleanup(restore)
 	return mapping
@@ -960,3 +968,42 @@ class TestDoctorFiles(BaseTestCase):
 		steps = [s["id"] for s in doctor.manual_setup_steps({"use_files": 1})]
 		self.assertIn("files_site_grant", steps)
 		self.assertIn("admin_consent", steps)
+
+
+class TestSettingsMove(BaseTestCase):
+	"""The storage options moved from Microsoft Settings to SharePoint Settings, values intact."""
+
+	def test_patch_copies_values_and_clears_old_rows(self):
+		from frappe_microsoft365.patches import files_options_to_sharepoint_settings as patch_
+
+		storage = frappe.get_doc("SharePoint Settings")
+		before = {k: storage.get(k) for k in STORAGE_OPTIONS}
+
+		def restore():
+			frappe.db.delete("Singles", {"doctype": "Microsoft Settings", "field": ["in", STORAGE_OPTIONS]})
+			for k, v in before.items():
+				frappe.db.set_single_value("SharePoint Settings", k, v)
+			frappe.clear_document_cache("SharePoint Settings", "SharePoint Settings")
+
+		self.addCleanup(restore)
+		frappe.db.delete("Singles", {"doctype": "Microsoft Settings", "field": ["in", STORAGE_OPTIONS]})
+		for field, value in (
+			("files_keep_local_copy", "1"),
+			("files_on_uninstall", "Leave files in SharePoint"),
+		):
+			frappe.db.sql(
+				"insert into `tabSingles` (doctype, field, value) values ('Microsoft Settings', %s, %s)",
+				(field, value),
+			)
+
+		patch_.execute()
+
+		self.assertEqual(frappe.db.get_single_value("SharePoint Settings", "files_keep_local_copy"), 1)
+		self.assertEqual(
+			frappe.db.get_single_value("SharePoint Settings", "files_on_uninstall"),
+			"Leave files in SharePoint",
+		)
+		self.assertFalse(
+			frappe.db.count("Singles", {"doctype": "Microsoft Settings", "field": ["in", STORAGE_OPTIONS]})
+		)
+		self.assertEqual(files.storage_option("files_keep_local_copy"), 1)

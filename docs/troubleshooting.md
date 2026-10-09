@@ -1152,8 +1152,9 @@ yesterday is not running, whatever the scheduler setting, Redis and the worker c
 ## SharePoint document storage
 
 Document storage signs in as the application (client credentials), so none of the per-user
-authorisation above applies. Run **Test** on the SharePoint Mapping (or **Microsoft Settings →
-Troubleshoot → Test SharePoint Connection** for every mapping) first: it signs in, reads which application permissions Microsoft put in the token, and then
+authorisation above applies. Run **Test** on the SharePoint Mapping (or **Test Connection** on
+**SharePoint Settings** for every mapping) first: it signs in, reads which application permissions
+Microsoft put in the token, and then
 resolves, reads and writes each mapped site in turn, stopping at the first step that fails.
 
 <a id="files-401"></a>
@@ -1200,8 +1201,8 @@ application permission. It is one of the following:
 ### `403` / `accessDenied` on a site
 
 The token carries `Sites.Selected`, but this site was never granted to the app. `Sites.Selected`
-by itself reaches no site. A site or global administrator grants each one: **Troubleshoot →
-SharePoint Site Grant Script** generates the commands for every mapped site (or **Site Grant Script**
+by itself reaches no site. A site or global administrator grants each one: **SharePoint
+Settings → Actions → Site Grant Script** generates the commands for every mapped site (or **Site Grant Script**
 on one mapping, for its site), or see
 [Granting a site](#files-graph-explorer) for doing it from Graph Explorer.
 

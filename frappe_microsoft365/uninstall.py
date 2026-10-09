@@ -4,7 +4,7 @@ Frappe's own uninstall deletes the app's DocTypes and module, but not custom fie
 standard DocTypes (Event, File) or their columns, and it knows nothing about attachments that
 were moved to SharePoint, whose links point at this app. This runs first and handles both:
 
-1. Attachments that live in SharePoint are dealt with as the site chose in Microsoft Settings >
+1. Attachments that live in SharePoint are dealt with as the site chose in SharePoint Settings >
    *If this app is uninstalled* (or ``microsoft365_uninstall_files`` in site_config.json:
    ``restore`` / ``leave``):
 
@@ -74,7 +74,7 @@ def choice():
 	if conf == "leave":
 		return LEAVE
 	if frappe.db.table_exists("Singles"):
-		value = frappe.db.get_single_value("Microsoft Settings", "files_on_uninstall")
+		value = frappe.db.get_single_value("SharePoint Settings", "files_on_uninstall")
 		if value in (RESTORE, LEAVE):
 			return value
 	if sys.stdin and sys.stdin.isatty():
@@ -112,7 +112,7 @@ def handle_files(dry_run=False):
 	if not how:
 		frappe.throw(
 			"Uninstall stopped: {0} attachment(s) ({1}) are stored in SharePoint. Choose what happens "
-			"to them first: Microsoft Settings > Document Storage > If this app is uninstalled "
+			"to them first: SharePoint Settings > If this app is uninstalled "
 			"(Bring files back to this server, or Leave files in SharePoint), then run the uninstall "
 			"again.".format(len(stored), _size(total))
 		)
@@ -120,10 +120,8 @@ def handle_files(dry_run=False):
 	if how == RESTORE and total * (1 + DISK_MARGIN) > free:
 		frappe.throw(
 			"Uninstall stopped: bringing the files back needs about {0} and this server has {1} free. "
-			"Nothing was downloaded. Free up space, or choose Leave files in SharePoint in Microsoft "
-			"Settings > Document Storage > If this app is uninstalled.".format(
-				_size(total * (1 + DISK_MARGIN)), _size(free)
-			)
+			"Nothing was downloaded. Free up space, or choose Leave files in SharePoint in SharePoint "
+			"Settings > If this app is uninstalled.".format(_size(total * (1 + DISK_MARGIN)), _size(free))
 		)
 
 	action = files.bring_back if how == RESTORE else files.leave_in_sharepoint
@@ -143,8 +141,8 @@ def handle_files(dry_run=False):
 	if failed:
 		frappe.throw(
 			"Uninstall stopped: {0} attachment(s) could not be handled, so removing the app now would "
-			"leave them unopenable here. Fix the cause (usually the connection: Microsoft Settings > "
-			"Troubleshoot) and run the uninstall again; files already handled stay that way.\n{1}".format(
+			"leave them unopenable here. Fix the cause (usually the connection: SharePoint Settings > "
+			"Test Connection) and run the uninstall again; files already handled stay that way.\n{1}".format(
 				len(failed), "\n".join(failed[:20])
 			)
 		)
@@ -172,4 +170,4 @@ def clear_caches():
 
 	graph.clear_app_token_cache()
 	files.clear_mapping_cache()
-	frappe.db.delete("Singles", {"doctype": "Microsoft Settings"})
+	frappe.db.delete("Singles", {"doctype": ["in", ["Microsoft Settings", "SharePoint Settings"]]})

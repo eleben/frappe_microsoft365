@@ -1231,7 +1231,7 @@ def manual_setup_steps(settings=None):
 				"Document storage, for exactly the sites that were granted and nothing else in the "
 				"tenant — unlike Sites.ReadWrite.All, which would reach every site."
 			),
-			"verify": _("Troubleshoot > Test SharePoint Connection reports every mapping OK."),
+			"verify": _("SharePoint Settings > Test Connection reports every mapping OK."),
 			"doc": SITES_SELECTED_DOC,
 		},
 	]

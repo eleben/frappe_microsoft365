@@ -105,6 +105,11 @@ def _settings():
 	return graph._settings_doc()
 
 
+def storage_option(fieldname):
+	"""A SharePoint Settings option (files_keep_local_copy, files_archive_links, …)."""
+	return frappe.get_cached_doc("SharePoint Settings").get(fieldname)
+
+
 def files_enabled(settings=None):
 	settings = settings or _settings()
 	return bool(settings.enabled and settings.get("use_files"))
@@ -610,7 +615,7 @@ def _eligible(file_doc, settings=None):
 		return False
 	if is_local(file_doc):
 		return True
-	return bool(settings.get("files_archive_links")) and is_link(file_doc)
+	return bool(storage_option("files_archive_links")) and is_link(file_doc)
 
 
 def on_file_insert(doc, method=None):
@@ -645,7 +650,6 @@ def upload_file(file_name):
 	if file_doc.get("custom_microsoft_status") in (STORED, ARCHIVED) or not _eligible(file_doc):
 		return
 
-	settings = _settings()
 	attempts = cint(file_doc.get("custom_microsoft_attempts")) + 1
 	# A savepoint, not a full rollback, on failure: a half-recorded folder must not survive, but
 	# neither should the caller's own unrelated writes be thrown away with it.
@@ -681,7 +685,7 @@ def upload_file(file_name):
 		return
 
 	local_url = file_doc.file_url if is_local(file_doc) else None
-	keep_local = bool(settings.get("files_keep_local_copy"))
+	keep_local = bool(storage_option("files_keep_local_copy"))
 	values = {
 		"custom_microsoft_status": STORED if local_url else ARCHIVED,
 		"custom_microsoft_drive_id": item.get("parentReference", {}).get("driveId") or folder.drive_id,
@@ -976,7 +980,7 @@ def on_file_trash(doc, method=None):
 	if not item_id or not doc.get("custom_microsoft_drive_id"):
 		return
 	settings = _settings()
-	if not (files_enabled(settings) and settings.get("files_delete_remote")):
+	if not (files_enabled(settings) and storage_option("files_delete_remote")):
 		return
 	# Attachment copies share the item; the last one out removes it.
 	others = frappe.db.count("File", {"custom_microsoft_item_id": item_id, "name": ["!=", doc.name]})
@@ -1515,7 +1519,7 @@ def _site_fix(message):
 	if "403" in message or "accessDenied" in message or "Forbidden" in message:
 		return _(
 			"The app has not been granted this site. Add the Sites.Selected application permission with "
-			"admin consent, then run Troubleshoot > SharePoint Site Grant Script as a SharePoint admin."
+			"admin consent, then run SharePoint Settings > Actions > Site Grant Script as a SharePoint admin."
 		)
 	if "404" in message or "itemNotFound" in message:
 		return _(

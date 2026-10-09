@@ -77,8 +77,10 @@ asks for `Sites.ReadWrite.All`.
    request.
 2. Make sure **Tenant ID** in Microsoft Settings is the directory (tenant) ID, not `common`.
    Client-credential sign-in has no `/common` endpoint.
-3. In Microsoft Settings, tick **SharePoint document storage** and save. Then create a
-   **SharePoint Mapping** (sidebar *SharePoint Storage → Mappings*, or *Microsoft Settings → Document Storage → Mappings*, then **Add**):
+3. In Microsoft Settings, tick **SharePoint document storage** and save. Its options (local
+   copies, linked files, deletes, uninstall) are on **SharePoint Settings**, in the sidebar's
+   *SharePoint* section, which also has the **Test Connection** button. Then create a
+   **SharePoint Mapping** (sidebar *SharePoint → Mappings*, then **Add**):
    - **DocType**: the DocType whose attachments go to SharePoint. The mapping is named after it,
      so each DocType can be mapped once.
    - **SharePoint Site URL**: in Teams, open the channel's *Files* tab and choose *Open in
@@ -89,8 +91,8 @@ asks for `Sites.ReadWrite.All`.
    - **Folder Name Pattern**: `{name}` by default. Use `{fieldname}` for any field, e.g.
      `{name} - {customer}`.
 4. Save the mapping, then click **Site Grant Script** on it. A SharePoint or Global administrator
-   runs the script in Microsoft Graph PowerShell. (*Microsoft Settings → Troubleshoot → SharePoint
-   Site Grant Script* gives one script for every mapped site.) For each site it runs:
+   runs the script in Microsoft Graph PowerShell. (*SharePoint Settings → Actions → Site Grant
+   Script* gives one script for every mapped site.) For each site it runs:
 
    ```powershell
    Connect-MgGraph -Scopes "Sites.FullControl.All"
@@ -101,7 +103,7 @@ asks for `Sites.ReadWrite.All`.
    }
    ```
 
-5. **Test** on the mapping (or *Microsoft Settings → Troubleshoot → Test SharePoint Connection*
+5. **Test** on the mapping (or **Test Connection** on *SharePoint Settings*
    for all of them). It signs in as the app, resolves the site and library, and creates and
    removes a `frappe-connection-test` folder in the base folder, so a read-only grant shows up now
    rather than on the first upload.
@@ -130,7 +132,7 @@ on Frappe Cloud. **Run Diagnostics** checks it.
 ## Uninstalling
 
 Before `bench --site <site> uninstall-app frappe_microsoft365` removes anything, it deals with the
-attachments stored in SharePoint as chosen in **Microsoft Settings → Document Storage → If this app
+attachments stored in SharePoint as chosen in **SharePoint Settings → If this app
 is uninstalled** (or `"microsoft365_uninstall_files": "restore"` / `"leave"` in `site_config.json`):
 
 - **Bring files back to this server**: each file is downloaded back and its attachment works as
