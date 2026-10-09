@@ -20,16 +20,18 @@ frees disk space, which matters on hosted plans with a fixed quota (Frappe Cloud
    - **Automatic**: on the record's first attachment. Every record of the DocType ends up in
      SharePoint.
    - **On demand**: only when someone asks, with **Create folder now** on the record's panel or by
-     adding a **SharePoint Folder**. Records nobody asked about keep their files on the
+     adding a row to the mapping's **Folders** table. Records nobody asked about keep their files on the
      server. Creating the folder also sends that record's existing attachments into it.
 
    Who may create folders is set per mapping in **Who can create folders**: empty means System
    Managers only; listed roles may too. Either way the user must be able to edit the record.
 
-   Each mapping lists its DocType's folders as a table: **Add Row** creates or links one by hand,
-   and **Delete** removes only the link (the folder and its files stay in SharePoint).
-   A SharePoint Folder can also **link a folder that already exists**: paste its SharePoint
-   address (from the browser or *Copy link*) or its path in the library, e.g. `Projects/PRJ-0001`.
+   Each mapping's **Folders** table has one row per record with a folder; the app adds rows as
+   records get theirs. To add one by hand, **Add Row**, pick the record and **Save**: the folder
+   is created where the mapping says, or, with **Existing Folder** filled in, **a folder that
+   already exists is linked**: paste its SharePoint address (from the browser or *Copy link*) or
+   its path in the library, e.g. `Projects/PRJ-0001`. Deleting a row removes only the link; the
+   folder and its files stay in SharePoint.
 3. When someone attaches a file to the record, a background job uploads it to that folder.
    The `File` row is then pointed at `/api/method/frappe_microsoft365.microsoft_files.open_file`.
    The attachment still opens from the form, previews, prints and emails as before, and the copy

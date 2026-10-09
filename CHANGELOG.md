@@ -9,7 +9,7 @@
   Grant Script and Move Existing Attachments; the global switch and options live in Microsoft
   Settings.
 - **Automatic or On demand** per mapping: on demand, a record's files move only once someone
-  creates its folder (from the record, or a SharePoint Folder); a SharePoint Folder can
+  creates its folder (from the record, or a row in the mapping's Folders table); a row can
   also link a folder that already exists in SharePoint. Each record gets its own folder; new
   attachments are moved there by a background job and keep opening from the form, and the copy
   on disk is removed unless *Keep a local copy* is ticked. Large files go through resumable
@@ -24,7 +24,8 @@
   tools and the site grant script; Microsoft Settings keeps only the capability tickbox.
 - The app's sidebar is shipped in both v16 formats: `<module>/sidebar/` (Frappe 16.4x and later)
   and `workspace_sidebar/` (earlier v16 releases), so every page is listed on either.
-- A SharePoint Mapping lists its DocType's folders, with *Add Row* to create or link one; the sidebar's
+- Record folders are the *Folders* table of their SharePoint Mapping (Add Row to create or link
+  one, Delete to forget one); the sidebar's
   SharePoint section lists only the mappings.
 - Doctor: Document Storage checks, a *Test SharePoint Connection* that proves write access per
   mapping, and a *SharePoint Site Grant Script* that grants the app only the mapped sites.

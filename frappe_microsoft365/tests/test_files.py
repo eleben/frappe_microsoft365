@@ -11,6 +11,7 @@ from types import SimpleNamespace
 from unittest.mock import MagicMock, patch
 
 import frappe
+from frappe.utils import add_to_date
 
 from frappe_microsoft365 import doctor
 from frappe_microsoft365 import microsoft_files as files
@@ -61,6 +62,7 @@ def configure(test, **overrides):
 
 	frappe.db.delete("SharePoint Mapping", {"name": MAPPED})
 	frappe.db.delete("SharePoint Mapping Role", {"parent": MAPPED})
+	frappe.db.delete("SharePoint Folder", {"parent": MAPPED})
 	mapping = frappe.get_doc(
 		{
 			"doctype": "SharePoint Mapping",
@@ -78,6 +80,7 @@ def configure(test, **overrides):
 	def restore():
 		frappe.db.delete("SharePoint Mapping", {"name": MAPPED})
 		frappe.db.delete("SharePoint Mapping Role", {"parent": MAPPED})
+		frappe.db.delete("SharePoint Folder", {"parent": MAPPED})
 		files.clear_mapping_cache()
 		d = frappe.get_doc("Microsoft Settings")
 		d.update(before)
@@ -790,52 +793,84 @@ class TestOnDemand(FilesTestCase):
 	def test_panel_says_files_stay_here(self):
 		self.assertTrue(files.list_folder(MAPPED, self.todo.name)["on_demand"])
 
+	def add_row(self, **row):
+		"""Add Row on the mapping's Folders table, then Save."""
+		mapping = frappe.get_doc("SharePoint Mapping", MAPPED)
+		mapping.append("folders", {"reference_name": self.todo.name, **row})
+		mapping.save()
+		return frappe.get_doc(
+			"SharePoint Folder",
+			{"parent": MAPPED, "reference_name": row.get("reference_name", self.todo.name)},
+		)
+
 	def test_a_folder_can_be_linked_by_path(self):
 		f = self.attach()
-		folder = frappe.get_doc(
-			{
-				"doctype": "SharePoint Folder",
-				"reference_doctype": MAPPED,
-				"reference_name": self.todo.name,
-				"existing_folder": "Projects/Already there",
-			}
-		).insert()
+		folder = self.add_row(existing_folder="Projects/Already there")
 		self.assertEqual(folder.item_id, "FOLDER")
 		self.assertEqual(folder.drive_id, "DRIVE")
+		self.assertEqual(folder.reference_doctype, MAPPED)
 		self.enqueued.assert_called_once_with(f.name)
 
 	def test_a_folder_can_be_linked_by_its_sharepoint_address(self):
-		folder = frappe.get_doc(
-			{
-				"doctype": "SharePoint Folder",
-				"reference_doctype": MAPPED,
-				"reference_name": self.todo.name,
-				"existing_folder": "https://contoso.sharepoint.com/sites/Sales/Shared%20Documents/Forms/AllItems.aspx?id=%2Fsites%2FSales%2FShared%20Documents%2FProjects%2FOld",
-			}
-		).insert()
+		folder = self.add_row(
+			existing_folder="https://contoso.sharepoint.com/sites/Sales/Shared%20Documents/Forms/AllItems.aspx?id=%2Fsites%2FSales%2FShared%20Documents%2FProjects%2FOld"
+		)
 		self.assertEqual(folder.item_id, "FOLDER")
 		self.assertIn(("GET", "/drives/DRIVE/root:/Projects/Old:"), self.graph.calls)
 
 	def test_a_new_folder_is_created_when_none_is_given(self):
-		folder = frappe.get_doc(
-			{
-				"doctype": "SharePoint Folder",
-				"reference_doctype": MAPPED,
-				"reference_name": self.todo.name,
-			}
-		).insert()
+		folder = self.add_row()
 		self.assertEqual(folder.folder_path, f"Projects/{files.safe_name(self.todo.name)}")
 
 	def test_a_record_gets_one_folder(self):
 		files.create_folder(MAPPED, self.todo.name)
 		with self.assertRaises(frappe.DuplicateEntryError):
-			frappe.get_doc(
-				{
-					"doctype": "SharePoint Folder",
-					"reference_doctype": MAPPED,
-					"reference_name": self.todo.name,
-				}
-			).insert()
+			self.add_row()
+
+	def test_the_app_adds_its_rows_to_the_mapping(self):
+		files.create_folder(MAPPED, self.todo.name)
+		rows = frappe.get_doc("SharePoint Mapping", MAPPED).folders
+		self.assertEqual([r.reference_name for r in rows], [self.todo.name])
+		self.assertTrue(rows[0].item_id)
+
+	def test_a_mapping_opened_before_a_folder_was_added_cannot_save_over_it(self):
+		stale = frappe.get_doc("SharePoint Mapping", MAPPED)
+		frappe.db.set_value(
+			"SharePoint Mapping",
+			MAPPED,
+			"modified",
+			add_to_date(stale.modified, seconds=-5),
+			update_modified=False,
+		)
+		stale = frappe.get_doc("SharePoint Mapping", MAPPED)
+		files.create_folder(MAPPED, self.todo.name)
+		stale.base_folder = "Elsewhere"
+		with self.assertRaises(frappe.TimestampMismatchError):
+			stale.save()
+		self.assertTrue(files.get_folder(MAPPED, self.todo.name))
+
+	def test_deleting_a_row_forgets_the_folder_and_leaves_sharepoint_alone(self):
+		files.create_folder(MAPPED, self.todo.name)
+		mapping = frappe.get_doc("SharePoint Mapping", MAPPED)
+		mapping.set("folders", [])
+		mapping.save()
+		self.assertIsNone(files.get_folder(MAPPED, self.todo.name))
+		self.assertNotIn("DELETE", [m for m, _p in self.graph.calls])
+
+
+class TestFoldersPatch(FilesTestCase):
+	def test_standalone_folders_become_rows_of_their_mapping(self):
+		from frappe_microsoft365.patches import folders_into_mapping_table as patch_
+
+		frappe.db.sql(
+			"""insert into `tabSharePoint Folder` (name, reference_doctype, reference_name, item_id, creation, modified)
+			values ('legacy-folder', %s, %s, 'OLD', now(), now())""",
+			(MAPPED, self.todo.name),
+		)
+		patch_.execute()
+		rows = frappe.get_doc("SharePoint Mapping", MAPPED).folders
+		self.assertIn("legacy-folder", [r.name for r in rows])
+		self.assertEqual(files.get_folder(MAPPED, self.todo.name).item_id, "OLD")
 
 
 class TestFolderPermissions(FilesTestCase):

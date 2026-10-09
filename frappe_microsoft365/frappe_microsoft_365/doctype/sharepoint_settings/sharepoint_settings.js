@@ -24,7 +24,6 @@ frappe.ui.form.on("SharePoint Settings", {
 				__("Troubleshoot")
 			);
 			frm.add_custom_button(__("Mappings"), () => frappe.set_route("List", "SharePoint Mapping"), __("Go to"));
-			frm.add_custom_button(__("Folders"), () => frappe.set_route("List", "SharePoint Folder"), __("Go to"));
 			frm.add_custom_button(__("Move Existing Attachments"), () => move_existing(frm), __("Actions"));
 		});
 	},

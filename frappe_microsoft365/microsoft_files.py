@@ -437,7 +437,7 @@ def get_folder(doctype, name):
 	return frappe.db.get_value(
 		"SharePoint Folder",
 		{"reference_doctype": doctype, "reference_name": name},
-		["name", "drive_id", "item_id", "web_url", "folder_name", "folder_path"],
+		["name", "reference_doctype", "drive_id", "item_id", "web_url", "folder_name", "folder_path"],
 		as_dict=True,
 	)
 
@@ -459,10 +459,44 @@ def ensure_folder(doctype, name):
 	if existing:
 		return existing
 
+	return frappe._dict(add_folder_row(doctype, name, values).as_dict())
+
+
+def add_folder_row(doctype, name, values):
+	"""Insert a row in the mapping's Folders table without saving the mapping.
+
+	Saving the mapping would rewrite every row and fail whenever two records get their folders at
+	once. Touching its modified time instead makes a mapping form opened before this row existed
+	refuse to save ("modified after you opened it") rather than save without it.
+	"""
+	idx = (
+		frappe.db.sql(
+			"select max(idx) from `tabSharePoint Folder` where parent=%s and parenttype='SharePoint Mapping'",
+			doctype,
+		)[0][0]
+		or 0
+	)
 	record = frappe.get_doc(
-		{"doctype": "SharePoint Folder", "reference_doctype": doctype, "reference_name": name, **values}
-	).insert(ignore_permissions=True)
-	return frappe._dict(record.as_dict())
+		{
+			"doctype": "SharePoint Folder",
+			"parent": doctype,
+			"parenttype": "SharePoint Mapping",
+			"parentfield": "folders",
+			"idx": idx + 1,
+			"reference_doctype": doctype,
+			"reference_name": name,
+			**values,
+		}
+	)
+	record.db_insert()
+	touch_mapping(doctype)
+	return record
+
+
+def touch_mapping(doctype):
+	"""Mark the mapping changed after its Folders rows were changed directly, so a mapping form
+	opened before cannot save its stale rows back over them."""
+	frappe.db.set_value("SharePoint Mapping", doctype, "modified", now_datetime(), update_modified=False)
 
 
 def new_folder_values(row, doctype, name):
@@ -567,6 +601,8 @@ def queue_record(doctype, name):
 def _forget_folder(folder):
 	"""Drop a folder record whose SharePoint folder is gone, so the next call recreates it."""
 	frappe.db.delete("SharePoint Folder", {"name": folder.name})
+	if folder.get("reference_doctype"):
+		touch_mapping(folder.reference_doctype)
 
 
 # --- uploads -----------------------------------------------------------------------------
@@ -1002,7 +1038,10 @@ def on_doc_trash(doc, method=None):
 		return
 	if doc.doctype not in mapped_doctypes():
 		return
-	frappe.db.delete("SharePoint Folder", {"reference_doctype": doc.doctype, "reference_name": doc.name})
+	filters = {"reference_doctype": doc.doctype, "reference_name": doc.name}
+	if frappe.db.exists("SharePoint Folder", filters):
+		frappe.db.delete("SharePoint Folder", filters)
+		touch_mapping(doc.doctype)
 
 
 def on_doc_rename(doc, method=None, old=None, new=None, merge=False):
@@ -1012,6 +1051,7 @@ def on_doc_rename(doc, method=None, old=None, new=None, merge=False):
 	folder = get_folder(doc.doctype, old)
 	if not folder:
 		return
+	touch_mapping(doc.doctype)
 	if merge or get_folder(doc.doctype, new):
 		frappe.db.delete("SharePoint Folder", {"name": folder.name})
 		return

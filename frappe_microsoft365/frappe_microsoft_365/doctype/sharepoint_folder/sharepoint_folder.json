@@ -5,7 +5,6 @@
  "doctype": "DocType",
  "engine": "InnoDB",
  "field_order": [
-  "about",
   "reference_doctype",
   "reference_name",
   "existing_folder",
@@ -20,38 +19,31 @@
  ],
  "fields": [
   {
-   "depends_on": "eval:doc.__islocal",
-   "fieldname": "about",
-   "fieldtype": "HTML",
-   "label": "About",
-   "options": "<div class='text-muted small' style='margin-bottom:8px'>Gives one record a folder in SharePoint. Pick the record, then <b>Save</b>: the folder is created where its SharePoint Mapping says, and the record's attachments move into it. To use a folder that already exists instead, paste it in <b>Existing Folder</b>.</div>"
-  },
-  {
-   "description": "Only DocTypes with a SharePoint Mapping are offered.",
+   "description": "Always the mapping's DocType.",
    "fieldname": "reference_doctype",
    "fieldtype": "Link",
-   "in_list_view": 1,
-   "in_standard_filter": 1,
+   "in_list_view": 0,
    "label": "DocType",
    "options": "DocType",
-   "reqd": 1,
+   "reqd": 0,
    "search_index": 1,
-   "set_only_once": 1
+   "hidden": 1,
+   "read_only": 1
   },
   {
    "fieldname": "reference_name",
    "fieldtype": "Dynamic Link",
    "in_list_view": 1,
-   "in_standard_filter": 1,
    "label": "Record",
    "options": "reference_doctype",
    "reqd": 1,
    "search_index": 1,
-   "set_only_once": 1
+   "read_only_depends_on": "eval:doc.item_id",
+   "columns": 3
   },
   {
-   "depends_on": "eval:doc.__islocal",
-   "description": "Optional. A SharePoint folder address (from the browser or Copy link) or a path in the library, e.g. Projects/PROJ-0001.",
+   "depends_on": "eval:!doc.item_id",
+   "description": "Optional, for a new row. Leave empty to create the folder where the mapping says, or paste a SharePoint folder address (from the browser or Copy link) or a path in the library, e.g. Projects/PROJ-0001.",
    "fieldname": "existing_folder",
    "fieldtype": "Data",
    "label": "Existing Folder"
@@ -61,7 +53,8 @@
    "fieldtype": "Data",
    "in_list_view": 1,
    "label": "Folder Name",
-   "read_only": 1
+   "read_only": 1,
+   "columns": 3
   },
   {
    "fieldname": "column_break_ref",
@@ -70,9 +63,11 @@
   {
    "fieldname": "web_url",
    "fieldtype": "Data",
-   "label": "Open in SharePoint",
+   "label": "SharePoint Link",
    "options": "URL",
-   "read_only": 1
+   "read_only": 1,
+   "in_list_view": 1,
+   "columns": 4
   },
   {
    "collapsible": 1,
@@ -105,24 +100,14 @@
   }
  ],
  "links": [],
- "modified": "2026-10-08 21:30:00",
+ "modified": "2026-10-09 04:00:00",
  "module": "Frappe Microsoft 365",
  "name": "SharePoint Folder",
  "owner": "Administrator",
- "permissions": [
-  {
-   "create": 1,
-   "delete": 1,
-   "export": 1,
-   "read": 1,
-   "report": 1,
-   "role": "System Manager",
-   "write": 1
-  }
- ],
+ "permissions": [],
  "sort_field": "modified",
  "sort_order": "DESC",
  "states": [],
- "title_field": "reference_name",
- "track_changes": 0
+ "istable": 1,
+ "editable_grid": 0
 }
