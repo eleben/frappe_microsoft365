@@ -27,6 +27,11 @@
 - Record folders are the *Folders* table of their SharePoint Mapping (Add Row to create or link
   one, Delete to forget one); the sidebar's
   SharePoint section lists only the mappings.
+- Per-mapping *Options*: a SharePoint Mapping can set *Keep a local copy* and *Remove from
+  SharePoint when the attachment is deleted* to On or Off for its DocType, or follow SharePoint
+  Settings (Default).
+- [User guide](docs/sharepoint-user-guide.md) for SharePoint document storage: everyday use, setup on
+  both the Microsoft and Frappe sides, administration and troubleshooting.
 - Doctor: Document Storage checks, a *Test SharePoint Connection* that proves write access per
   mapping, and a *SharePoint Site Grant Script* that grants the app only the mapped sites.
 - *Move Existing Attachments* queues files attached before a DocType was mapped. Optional

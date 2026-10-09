@@ -19,6 +19,10 @@
   "use_base_folder",
   "base_folder",
   "folder_pattern",
+  "options_section",
+  "keep_local_copy",
+  "options_column",
+  "delete_remote",
   "folders_section",
   "folders",
   "resolved_section",
@@ -64,7 +68,7 @@
   },
   {
    "default": "Automatic",
-   "description": "<b>Automatic:</b> every record gets a folder on its first attachment, and all its attachments move to SharePoint.<br><b>On demand:</b> nothing moves until someone creates the record's folder (SharePoint › Create folder in the record's toolbar, or a new SharePoint Folder). From then on that record's attachments move; other records stay on this server.",
+   "description": "<b>Automatic:</b> every record gets a folder on its first attachment, and all its attachments move to SharePoint.<br><b>On demand:</b> nothing moves until someone creates the record's folder (SharePoint › Create folder in the record's toolbar, or Add Row in Folders below). From then on that record's attachments move; other records stay on this server.",
    "fieldname": "folder_creation",
    "fieldtype": "Select",
    "in_list_view": 1,
@@ -115,6 +119,33 @@
    "label": "Folder Name Pattern"
   },
   {
+   "fieldname": "options_section",
+   "fieldtype": "Section Break",
+   "label": "Options",
+   "collapsible": 1,
+   "description": "Each option follows SharePoint Settings unless set here for this DocType."
+  },
+  {
+   "fieldname": "keep_local_copy",
+   "fieldtype": "Select",
+   "label": "Keep a local copy after upload",
+   "options": "Default\nOn\nOff",
+   "default": "Default",
+   "description": "<b>Default:</b> as in SharePoint Settings.<br><b>On:</b> this DocType's files keep their copy on this server too, e.g. while trialling it.<br><b>Off:</b> the copy on this server is deleted once the file is in SharePoint."
+  },
+  {
+   "fieldname": "options_column",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "delete_remote",
+   "fieldtype": "Select",
+   "label": "Remove from SharePoint when the attachment is deleted",
+   "options": "Default\nOn\nOff",
+   "default": "Default",
+   "description": "<b>Default:</b> as in SharePoint Settings.<br><b>On:</b> deleting one of this DocType's attachments sends its SharePoint copy to the site's recycle bin.<br><b>Off:</b> the SharePoint copy is always kept, e.g. for records that must be retained."
+  },
+  {
    "fieldname": "folders_section",
    "fieldtype": "Section Break",
    "label": "Folders",
@@ -159,7 +190,7 @@
   }
  ],
  "links": [],
- "modified": "2026-10-09 04:00:00",
+ "modified": "2026-10-09 05:00:00",
  "module": "Frappe Microsoft 365",
  "name": "SharePoint Mapping",
  "naming_rule": "By fieldname",

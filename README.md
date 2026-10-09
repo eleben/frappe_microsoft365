@@ -10,6 +10,7 @@
 [Setup](docs/setup.md) ·
 [How it behaves](docs/how-it-works.md) ·
 [SharePoint storage](docs/sharepoint-files.md) ·
+[SharePoint user guide](docs/sharepoint-user-guide.md) ·
 [Troubleshooting](docs/troubleshooting.md) ·
 [FAQ](docs/faq.md)
 
@@ -58,7 +59,8 @@ Microsoft Graph.
   record gets its own folder: attachments move there and stop using your server's disk, and
   files dropped into the folder from Teams show on the record. Signs in as the app with
   `Sites.Selected`, so it reaches only the sites an admin grants. See
-  [SharePoint document storage](docs/sharepoint-files.md).
+  [SharePoint document storage](docs/sharepoint-files.md), with a
+  [user guide](docs/sharepoint-user-guide.md) for the people who use and set it up.
 - **A doctor for when it breaks.** Setup spans two Microsoft portals and almost every mistake
   surfaces as the same unhelpful string. **Run Diagnostics** names the failing step;
   **Explain an Error** decodes a message from the Error Log into a cause and a fix.

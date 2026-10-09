@@ -39,7 +39,7 @@
    "fieldtype": "Check",
    "label": "Keep a local copy after upload",
    "default": "0",
-   "description": "<b>Off:</b> the copy on this server is deleted once the file is in SharePoint, freeing disk space.<br><b>On:</b> both copies are kept, e.g. while trialling. If the SharePoint copy disappears, the local one is served."
+   "description": "<b>Off:</b> the copy on this server is deleted once the file is in SharePoint, freeing disk space.<br><b>On:</b> both copies are kept, e.g. while trialling. If the SharePoint copy disappears, the local one is served.<br>The default for every DocType; a SharePoint Mapping can set its own under Options."
   },
   {
    "fieldname": "files_archive_links",
@@ -57,7 +57,7 @@
    "fieldtype": "Check",
    "label": "Remove from SharePoint when the attachment is deleted",
    "default": "0",
-   "description": "<b>Off:</b> deleting an attachment here leaves the SharePoint copy alone.<br><b>On:</b> the SharePoint copy goes to the site's recycle bin, where it can be restored."
+   "description": "<b>Off:</b> deleting an attachment here leaves the SharePoint copy alone.<br><b>On:</b> the SharePoint copy goes to the site's recycle bin, where it can be restored.<br>The default for every DocType; a SharePoint Mapping can set its own under Options."
   },
   {
    "fieldname": "uninstall_section",
@@ -84,7 +84,7 @@
   }
  ],
  "links": [],
- "modified": "2026-10-09 01:00:00",
+ "modified": "2026-10-09 05:00:00",
  "modified_by": "Administrator",
  "module": "Frappe Microsoft 365",
  "name": "SharePoint Settings",

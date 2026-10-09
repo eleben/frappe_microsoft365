@@ -105,8 +105,30 @@ def _settings():
 	return graph._settings_doc()
 
 
-def storage_option(fieldname):
-	"""A SharePoint Settings option (files_keep_local_copy, files_archive_links, …)."""
+#: Options a SharePoint Mapping may set for its own DocType: its field, and the SharePoint
+#: Settings field that is the default.
+MAPPING_OVERRIDES = {
+	"files_keep_local_copy": "keep_local_copy",
+	"files_delete_remote": "delete_remote",
+}
+
+
+def storage_option(fieldname, doctype=None):
+	"""A SharePoint Settings option (files_keep_local_copy, files_archive_links, …).
+
+	With a DocType, its mapping's override wins where it has one: On or Off on the mapping, or
+	Default (or no mapping) to follow SharePoint Settings.
+	"""
+	override = MAPPING_OVERRIDES.get(fieldname)
+	if override and doctype:
+		# Disabled mappings count too: their files are still in SharePoint, and a mapping set to
+		# keep them must keep doing so while paused.
+		row = next((r for r in _mappings() if r.reference_doctype == doctype), None)
+		choice = (row or {}).get(override)
+		if choice == "On":
+			return 1
+		if choice == "Off":
+			return 0
 	return frappe.get_cached_doc("SharePoint Settings").get(fieldname)
 
 
@@ -129,6 +151,8 @@ MAPPING_FIELDS = [
 	"folder_pattern",
 	"site_id",
 	"drive_id",
+	"keep_local_copy",
+	"delete_remote",
 ]
 
 
@@ -721,7 +745,7 @@ def upload_file(file_name):
 		return
 
 	local_url = file_doc.file_url if is_local(file_doc) else None
-	keep_local = bool(storage_option("files_keep_local_copy"))
+	keep_local = bool(storage_option("files_keep_local_copy", file_doc.attached_to_doctype))
 	values = {
 		"custom_microsoft_status": STORED if local_url else ARCHIVED,
 		"custom_microsoft_drive_id": item.get("parentReference", {}).get("driveId") or folder.drive_id,
@@ -1016,7 +1040,7 @@ def on_file_trash(doc, method=None):
 	if not item_id or not doc.get("custom_microsoft_drive_id"):
 		return
 	settings = _settings()
-	if not (files_enabled(settings) and storage_option("files_delete_remote")):
+	if not (files_enabled(settings) and storage_option("files_delete_remote", doc.attached_to_doctype)):
 		return
 	# Attachment copies share the item; the last one out removes it.
 	others = frappe.db.count("File", {"custom_microsoft_item_id": item_id, "name": ["!=", doc.name]})

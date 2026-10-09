@@ -17,7 +17,38 @@ frappe.ui.form.on("SharePoint Mapping", {
 			frappe.set_route("Form", "SharePoint Settings"),
 		);
 	},
+	onload_post_render(frm) {
+		show_defaults(frm);
+	},
 });
+
+// Each override's Default follows SharePoint Settings; say what that is today, so nobody has
+// to open another page to know what this DocType's files will do.
+const OVERRIDES = {
+	keep_local_copy: "files_keep_local_copy",
+	delete_remote: "files_delete_remote",
+};
+
+function show_defaults(frm) {
+	frappe.db
+		.get_value("SharePoint Settings", "SharePoint Settings", Object.values(OVERRIDES))
+		.then((r) => {
+			const values = r.message || {};
+			Object.entries(OVERRIDES).forEach(([field, setting]) => {
+				const df = frappe.meta.get_docfield(frm.doctype, field);
+				const base = (df.__base_description ||= df.description || "");
+				const now = values[setting] ? __("On") : __("Off");
+				frm.set_df_property(
+					field,
+					"description",
+					base.replace(
+						__("as in SharePoint Settings."),
+						__("as in <a href='/app/sharepoint-settings'>SharePoint Settings</a>, currently <b>{0}</b>.", [now]),
+					),
+				);
+			});
+		});
+}
 
 // Folders table: a new row is always for this mapping's DocType. Rows the app added are
 // already resolved, so their record cannot be changed (reference_name is read-only once a

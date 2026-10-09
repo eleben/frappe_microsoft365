@@ -1,5 +1,8 @@
 # SharePoint document storage
 
+*For a step-by-step guide aimed at the people who use and set it up, see the
+[user guide](sharepoint-user-guide.md).*
+
 Keep a DocType's attachments in SharePoint, or in a Microsoft Teams channel's Files tab, instead
 of on the Frappe server. Each record gets its own folder. Files attached in Frappe move there,
 and files people drop into the folder from Teams show on the record.
@@ -35,7 +38,8 @@ frees disk space, which matters on hosted plans with a fixed quota (Frappe Cloud
 3. When someone attaches a file to the record, a background job uploads it to that folder.
    The `File` row is then pointed at `/api/method/frappe_microsoft365.microsoft_files.open_file`.
    The attachment still opens from the form, previews, prints and emails as before, and the copy
-   on the server's disk is removed. Tick **Keep a local copy after upload** while trialling.
+   on the server's disk is removed. Tick **Keep a local copy after upload** while trialling (on
+   SharePoint Settings, or for one DocType on its mapping).
 4. The record shows a **Files in Microsoft 365** panel. It lists everything in the folder,
    including subfolders and files added from Teams or SharePoint, and has an **Open in
    SharePoint** button.
@@ -46,6 +50,24 @@ frees disk space, which matters on hosted plans with a fixed quota (Frappe Cloud
 Nothing is ever deleted from SharePoint by default. Removing an attachment in Frappe leaves the
 SharePoint copy alone. **Remove from SharePoint when the attachment is deleted** changes that, and
 even then the file goes to the site's recycle bin. Deleting a record keeps its folder too.
+
+### Options, site-wide and per DocType
+
+**SharePoint Settings** holds the defaults for every mapped DocType. Two of them can be set
+differently for one DocType, under **Options** on its SharePoint Mapping:
+
+| Option | Default (SharePoint Settings) | Per mapping |
+| --- | --- | --- |
+| Keep a local copy after upload | Off | Default / On / Off |
+| Remove from SharePoint when the attachment is deleted | Off | Default / On / Off |
+| Also copy linked files into SharePoint | Off | Site-wide only |
+| If this app is uninstalled | (ask) | Site-wide only |
+
+**Default** follows SharePoint Settings, and the mapping shows what that currently is. **On** or
+**Off** applies to that DocType's attachments whatever SharePoint Settings says. Typical uses:
+keep local copies for the one DocType being trialled while the others run fully in SharePoint,
+or set removal **Off** for a DocType whose documents must be retained even if they are deleted
+here. A disabled mapping's override still applies to its files already in SharePoint.
 
 ### What moves and what stays
 

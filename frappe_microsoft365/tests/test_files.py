@@ -858,6 +858,53 @@ class TestOnDemand(FilesTestCase):
 		self.assertNotIn("DELETE", [m for m, _p in self.graph.calls])
 
 
+class TestMappingOverrides(FilesTestCase):
+	"""A mapping's Options override SharePoint Settings for its own DocType only."""
+
+	def set_override(self, field, value):
+		mapping = frappe.get_doc("SharePoint Mapping", MAPPED)
+		mapping.set(field, value)
+		mapping.save()
+
+	def test_default_follows_sharepoint_settings(self):
+		self.assertEqual(files.storage_option("files_keep_local_copy", MAPPED), 0)
+		frappe.db.set_single_value("SharePoint Settings", "files_keep_local_copy", 1)
+		frappe.clear_document_cache("SharePoint Settings", "SharePoint Settings")
+		self.assertEqual(files.storage_option("files_keep_local_copy", MAPPED), 1)
+
+	def test_on_and_off_win_over_the_settings(self):
+		self.set_override("keep_local_copy", "On")
+		self.assertEqual(files.storage_option("files_keep_local_copy", MAPPED), 1)
+		self.assertEqual(files.storage_option("files_keep_local_copy", "Note"), 0)
+		frappe.db.set_single_value("SharePoint Settings", "files_delete_remote", 1)
+		frappe.clear_document_cache("SharePoint Settings", "SharePoint Settings")
+		self.set_override("delete_remote", "Off")
+		self.assertEqual(files.storage_option("files_delete_remote", MAPPED), 0)
+
+	def test_a_kept_local_copy_follows_the_mapping(self):
+		self.set_override("keep_local_copy", "On")
+		f = self.attach()
+		files.upload_file(f.name)
+		f.reload()
+		self.assertEqual(f.custom_microsoft_status, files.STORED)
+		self.assertTrue(os.path.exists(files.local_path(f.custom_microsoft_local_url)))
+
+	def test_off_keeps_the_sharepoint_copy_even_when_settings_say_remove(self):
+		configure(self, files_delete_remote=1)
+		self.set_override("delete_remote", "Off")
+		f = self.attach()
+		files.upload_file(f.name)
+		frappe.delete_doc("File", f.name, force=True)
+		self.assertNotIn("DELETE", [m for m, _p in self.graph.calls])
+
+	def test_on_removes_it_even_when_settings_say_keep(self):
+		self.set_override("delete_remote", "On")
+		f = self.attach()
+		files.upload_file(f.name)
+		frappe.delete_doc("File", f.name, force=True)
+		self.assertIn("DELETE", [m for m, _p in self.graph.calls])
+
+
 class TestFoldersPatch(FilesTestCase):
 	def test_standalone_folders_become_rows_of_their_mapping(self):
 		from frappe_microsoft365.patches import folders_into_mapping_table as patch_
