@@ -22,6 +22,8 @@
   `Sites.ReadWrite.All`.
 - **SharePoint Settings**: its own page in the sidebar for the storage options, attachment counts,
   tools and the site grant script; Microsoft Settings keeps only the capability tickbox.
+- The app's sidebar is shipped in both v16 formats: `<module>/sidebar/` (Frappe 16.4x and later)
+  and `workspace_sidebar/` (earlier v16 releases), so every page is listed on either.
 - Doctor: Document Storage checks, a *Test SharePoint Connection* that proves write access per
   mapping, and a *SharePoint Site Grant Script* that grants the app only the mapped sites.
 - *Move Existing Attachments* queues files attached before a DocType was mapped. Optional
