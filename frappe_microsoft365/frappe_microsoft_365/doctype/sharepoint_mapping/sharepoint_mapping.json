@@ -19,6 +19,8 @@
   "use_base_folder",
   "base_folder",
   "folder_pattern",
+  "folders_section",
+  "folders_html",
   "resolved_section",
   "site_id",
   "column_break_resolved",
@@ -35,7 +37,7 @@
    "fieldname": "how_it_works",
    "fieldtype": "HTML",
    "label": "How It Works",
-   "options": "<div class='text-muted small'><ol style='padding-left:18px;margin:0'><li>Each record of the DocType below can have its own folder in SharePoint, named by <b>Folder Name Pattern</b>. With <b>Folder Creation</b> set to <i>Automatic</i> it is created on the record's first attachment; with <i>On demand</i>, only when someone asks: on the record, use <b>SharePoint \u203a Create folder</b> in the toolbar or <b>Create folder now</b> in the <b>Files in Microsoft 365</b> panel at the top of the form; or add a SharePoint Folder.</li><li>Files attached to a record that has a folder (sidebar attachments, not image or Attach fields) are moved into it in the background a few seconds later. They keep opening from the record, through the ERP's own permissions.</li><li>Files people save into the folder from Teams or SharePoint show in the record's <b>Files in Microsoft 365</b> panel, at the top of its form.</li><li>Nothing is deleted from SharePoint unless <b>Microsoft Settings</b> says so, and then only to the site recycle bin.</li></ol><p style='margin:8px 0 0'><b>Setting up:</b> paste the site URL (for a Teams channel: Files tab \u203a Open in SharePoint), save, click <b>Site Grant Script</b> and have a SharePoint admin run it, then click <b>Test</b>. <b>Standard channel:</b> keep <i>Group record folders in a base folder</i> on and use the channel name as Base Folder. <b>Private or shared channel:</b> use the channel's own site and untick it, so record folders sit directly in the channel.</p></div>"
+   "options": "<div class='text-muted small'><ol style='padding-left:18px;margin:0'><li>Each record of the DocType below can have its own folder in SharePoint, named by <b>Folder Name Pattern</b>. With <b>Folder Creation</b> set to <i>Automatic</i> it is created on the record's first attachment; with <i>On demand</i>, only when someone asks: on the record, use <b>SharePoint › Create folder</b> in the toolbar or <b>Create folder now</b> in the <b>Files in Microsoft 365</b> panel at the top of the form; or add a SharePoint Folder.</li><li>Files attached to a record that has a folder (sidebar attachments, not image or Attach fields) are moved into it in the background a few seconds later. They keep opening from the record, through the ERP's own permissions.</li><li>Files people save into the folder from Teams or SharePoint show in the record's <b>Files in Microsoft 365</b> panel, at the top of its form.</li><li>Nothing is deleted from SharePoint unless <b>Microsoft Settings</b> says so, and then only to the site recycle bin.</li></ol><p style='margin:8px 0 0'><b>Setting up:</b> paste the site URL (for a Teams channel: Files tab › Open in SharePoint), save, click <b>Site Grant Script</b> and have a SharePoint admin run it, then click <b>Test</b>. <b>Standard channel:</b> keep <i>Group record folders in a base folder</i> on and use the channel name as Base Folder. <b>Private or shared channel:</b> use the channel's own site and untick it, so record folders sit directly in the channel.</p></div>"
   },
   {
    "fieldname": "main_section",
@@ -62,7 +64,7 @@
   },
   {
    "default": "Automatic",
-   "description": "<b>Automatic:</b> every record gets a folder on its first attachment, and all its attachments move to SharePoint.<br><b>On demand:</b> nothing moves until someone creates the record's folder (SharePoint \u203a Create folder in the record's toolbar, or a new SharePoint Folder). From then on that record's attachments move; other records stay on this server.",
+   "description": "<b>Automatic:</b> every record gets a folder on its first attachment, and all its attachments move to SharePoint.<br><b>On demand:</b> nothing moves until someone creates the record's folder (SharePoint › Create folder in the record's toolbar, or a new SharePoint Folder). From then on that record's attachments move; other records stay on this server.",
    "fieldname": "folder_creation",
    "fieldtype": "Select",
    "in_list_view": 1,
@@ -113,6 +115,17 @@
    "label": "Folder Name Pattern"
   },
   {
+   "fieldname": "folders_section",
+   "fieldtype": "Section Break",
+   "label": "Folders",
+   "depends_on": "eval:!doc.__islocal"
+  },
+  {
+   "fieldname": "folders_html",
+   "fieldtype": "HTML",
+   "label": "Folders"
+  },
+  {
    "collapsible": 1,
    "fieldname": "resolved_section",
    "fieldtype": "Section Break",
@@ -150,7 +163,7 @@
    "link_fieldname": "reference_doctype"
   }
  ],
- "modified": "2026-10-08 22:00:00",
+ "modified": "2026-10-09 03:00:00",
  "module": "Frappe Microsoft 365",
  "name": "SharePoint Mapping",
  "naming_rule": "By fieldname",

@@ -13,11 +13,76 @@ frappe.ui.form.on("SharePoint Mapping", {
 		frm.add_custom_button(__("Test"), () => test_mapping(frm)).addClass("btn-primary");
 		frm.add_custom_button(__("Site Grant Script"), () => grant_script(frm));
 		frm.add_custom_button(__("Move Existing Attachments"), () => move_existing(frm));
-		frm.add_custom_button(__("Microsoft Settings"), () =>
-			frappe.set_route("Form", "Microsoft Settings"),
+		frm.add_custom_button(__("SharePoint Settings"), () =>
+			frappe.set_route("Form", "SharePoint Settings"),
 		);
+		show_folders(frm);
 	},
 });
+
+// The record folders of this DocType, listed on its mapping, so a mapping is the one place to
+// see where a DocType's files live. Most recently changed first; the full list is a click away.
+const FOLDER_LIMIT = 50;
+
+function show_folders(frm) {
+	const field = frm.fields_dict.folders_html;
+	if (!field) return;
+	const $wrapper = field.$wrapper;
+	const filters = { reference_doctype: frm.doc.reference_doctype };
+	Promise.all([
+		frappe.db.get_list("SharePoint Folder", {
+			filters,
+			fields: ["name", "reference_name", "folder_name", "folder_path", "web_url"],
+			order_by: "modified desc",
+			limit: FOLDER_LIMIT,
+		}),
+		frappe.db.count("SharePoint Folder", { filters }),
+	]).then(([rows, total]) => {
+		const esc = (v) => frappe.utils.escape_html(v == null ? "" : String(v));
+		const record_url = (name) =>
+			`/app/${frappe.router.slug(frm.doc.reference_doctype)}/${encodeURIComponent(name)}`;
+		const body = rows.length
+			? `<table class="table table-sm" style="margin:0">
+				<thead><tr class="text-muted small">
+					<th>${__("Record")}</th><th>${__("Folder")}</th><th></th>
+				</tr></thead>
+				<tbody>${rows
+					.map(
+						(r) => `<tr>
+							<td><a href="${esc(record_url(r.reference_name))}">${esc(r.reference_name)}</a></td>
+							<td class="text-muted"><a class="text-muted" href="/app/sharepoint-folder/${encodeURIComponent(r.name)}" title="${esc(r.folder_path || "")}">${esc(r.folder_name || r.folder_path || "")}</a></td>
+							<td class="text-right">${
+								r.web_url
+									? `<a href="${esc(r.web_url)}" target="_blank" rel="noopener">${__("Open in SharePoint")} ↗</a>`
+									: ""
+							}</td>
+						</tr>`,
+					)
+					.join("")}</tbody>
+			</table>`
+			: `<div class="text-muted small">${__(
+					"No folders yet. They appear here as {0} records get their SharePoint folder.",
+					[__(frm.doc.reference_doctype)],
+				)}</div>`;
+		const more =
+			total > rows.length
+				? `<a class="ms365-all small">${__("View all {0}", [total])}</a>`
+				: "";
+		$wrapper.html(`
+			<div style="display:flex;gap:8px;align-items:center;margin-bottom:8px">
+				<div class="small text-muted" style="flex:1">${__("{0} folder(s)", [total])}</div>
+				${more}
+				<button class="btn btn-xs btn-default ms365-add">${__("Add or Link Folder")}</button>
+			</div>
+			${body}`);
+		$wrapper.find(".ms365-add").on("click", () =>
+			frappe.new_doc("SharePoint Folder", { reference_doctype: frm.doc.reference_doctype }),
+		);
+		$wrapper.find(".ms365-all").on("click", () =>
+			frappe.set_route("List", "SharePoint Folder", filters),
+		);
+	});
+}
 
 function test_mapping(frm) {
 	if (frm.is_dirty()) {

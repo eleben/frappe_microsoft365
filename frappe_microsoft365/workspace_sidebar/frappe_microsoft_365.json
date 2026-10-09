@@ -71,21 +71,9 @@
    "link_type": "DocType",
    "show_arrow": 0,
    "type": "Link"
-  },
-  {
-   "child": 1,
-   "collapsible": 0,
-   "icon": "folder-open",
-   "indent": 0,
-   "keep_closed": 0,
-   "label": "Folders",
-   "link_to": "SharePoint Folder",
-   "link_type": "DocType",
-   "show_arrow": 0,
-   "type": "Link"
   }
  ],
- "modified": "2026-10-09 02:00:00",
+ "modified": "2026-10-09 03:00:00.000000",
  "modified_by": "Administrator",
  "module": "Frappe Microsoft 365",
  "name": "Frappe Microsoft 365",
