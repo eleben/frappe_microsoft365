@@ -78,8 +78,7 @@ asks for `Sites.ReadWrite.All`.
 2. Make sure **Tenant ID** in Microsoft Settings is the directory (tenant) ID, not `common`.
    Client-credential sign-in has no `/common` endpoint.
 3. In Microsoft Settings, tick **SharePoint document storage** and save. Its options (local
-   copies, linked files, deletes, uninstall) are on **SharePoint Settings**, in the sidebar's
-   *SharePoint* section, which also has its tools. Then create a
+   copies, linked files, deletes, uninstall) are on **SharePoint Settings**, in the sidebar, which also has its tools. Then create a
    **SharePoint Mapping** (sidebar *SharePoint → Mappings*, then **Add**):
    - **DocType**: the DocType whose attachments go to SharePoint. The mapping is named after it,
      so each DocType can be mapped once.
@@ -91,8 +90,8 @@ asks for `Sites.ReadWrite.All`.
    - **Folder Name Pattern**: `{name}` by default. Use `{fieldname}` for any field, e.g.
      `{name} - {customer}`.
 4. Save the mapping, then click **Site Grant Script** on it. A SharePoint or Global administrator
-   runs the script in Microsoft Graph PowerShell. (*SharePoint Settings → Troubleshoot → Site
-   Grant Script* gives one script for every mapped site.) For each site it runs:
+   runs the script in Microsoft Graph PowerShell. (The *Site Grant Script* section of
+   *SharePoint Settings* gives one script for every mapped site.) For each site it runs:
 
    ```powershell
    Connect-MgGraph -Scopes "Sites.FullControl.All"

@@ -20,8 +20,8 @@
   credentials flow, with the token cached encrypted per site. Document storage needs the
   `Sites.Selected` application permission and a per-site grant — never tenant-wide
   `Sites.ReadWrite.All`.
-- **SharePoint Settings**: its own page (sidebar *SharePoint*) for the storage options, attachment
-  counts and tools; Microsoft Settings keeps only the capability tickbox.
+- **SharePoint Settings**: its own page in the sidebar for the storage options, attachment counts,
+  tools and the site grant script; Microsoft Settings keeps only the capability tickbox.
 - Doctor: Document Storage checks, a *Test SharePoint Connection* that proves write access per
   mapping, and a *SharePoint Site Grant Script* that grants the app only the mapped sites.
 - *Move Existing Attachments* queues files attached before a DocType was mapped. Optional

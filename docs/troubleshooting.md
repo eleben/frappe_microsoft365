@@ -1201,8 +1201,8 @@ application permission. It is one of the following:
 ### `403` / `accessDenied` on a site
 
 The token carries `Sites.Selected`, but this site was never granted to the app. `Sites.Selected`
-by itself reaches no site. A site or global administrator grants each one: **SharePoint
-Settings → Troubleshoot → Site Grant Script** generates the commands for every mapped site (or **Site Grant Script**
+by itself reaches no site. A site or global administrator grants each one: the **Site Grant
+Script** section of SharePoint Settings generates the commands for every mapped site (or **Site Grant Script**
 on one mapping, for its site), or see
 [Granting a site](#files-graph-explorer) for doing it from Graph Explorer.
 

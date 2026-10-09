@@ -16,13 +16,13 @@ frappe.ui.form.on("SharePoint Settings", {
 				return;
 			}
 			$status.empty();
+			show_grant_script(frm);
 			frappe_microsoft365.files.render_summary($status);
 			frm.add_custom_button(
 				__("Test SharePoint Connection"),
 				() => frappe_microsoft365.files.test_connection(frm),
 				__("Troubleshoot")
 			);
-			frm.add_custom_button(__("Site Grant Script"), () => site_grant_script(), __("Troubleshoot"));
 			frm.add_custom_button(__("Mappings"), () => frappe.set_route("List", "SharePoint Mapping"), __("Go to"));
 			frm.add_custom_button(__("Folders"), () => frappe.set_route("List", "SharePoint Folder"), __("Go to"));
 			frm.add_custom_button(__("Move Existing Attachments"), () => move_existing(frm), __("Actions"));
@@ -30,27 +30,38 @@ frappe.ui.form.on("SharePoint Settings", {
 	},
 });
 
-function site_grant_script() {
-	frappe.call({
-		method: "frappe_microsoft365.doctor.site_grant_powershell",
-		callback: (r) => {
-			const out = r.message || {};
-			const dialog = new frappe.ui.Dialog({
-				title: __("SharePoint Site Grant Script"),
-				size: "large",
-				fields: [
-					{
-						fieldtype: "HTML",
-						options: `<div class="alert alert-info small">${__(
-							"Sites.Selected lets the app be granted individual sites; this script is the grant. It gives the app <b>write</b> access to the sites below and to no other site. A SharePoint or Global administrator runs it in Microsoft Graph PowerShell. Nothing runs from this screen."
-						)}</div>`,
-					},
-					{ fieldname: "script", fieldtype: "Code", label: __("Microsoft Graph PowerShell"), read_only: 1 },
-				],
-			});
-			dialog.set_value("script", out.script || "");
-			dialog.show();
-		},
+// The grant script for every enabled mapping's site, on the page itself so the administrator
+// who runs it can be sent straight here. Built from the mappings, so it names this site's own
+// SharePoint sites and the app's client id.
+function show_grant_script(frm) {
+	const $wrapper = frm.fields_dict.grant_script_html.$wrapper;
+	const intro = `<div class="text-muted small" style="margin-bottom:8px">${__(
+		"Sites.Selected lets the app be granted individual sites; this script is the grant. It gives the app <b>write</b> access to the sites of the enabled SharePoint Mappings and to no other site. A SharePoint or Global administrator runs it in Microsoft Graph PowerShell. Nothing runs from this page."
+	)}</div>`;
+	frappe.db.count("SharePoint Mapping", { filters: { enabled: 1 } }).then((n) => {
+		if (!n) {
+			$wrapper.html(
+				intro +
+					`<div class="text-muted small">${__(
+						"Add a SharePoint Mapping first; its site appears here."
+					)}</div>`
+			);
+			return;
+		}
+		frappe.call({
+			method: "frappe_microsoft365.doctor.site_grant_powershell",
+			callback: (r) => {
+				const script = (r.message || {}).script || "";
+				$wrapper.html(
+					intro +
+						`<div style="position:relative">
+							<button class="btn btn-xs btn-default ms365-copy" style="position:absolute;top:8px;right:8px">${__("Copy")}</button>
+							<pre style="white-space:pre-wrap;font-size:12px;padding:12px;margin:0">${frappe.utils.escape_html(script)}</pre>
+						</div>`
+				);
+				$wrapper.find(".ms365-copy").on("click", () => frappe.utils.copy_to_clipboard(script));
+			},
+		});
 	});
 }
 

@@ -13,7 +13,9 @@
   "options_column",
   "files_delete_remote",
   "uninstall_section",
-  "files_on_uninstall"
+  "files_on_uninstall",
+  "grant_section",
+  "grant_script_html"
  ],
  "fields": [
   {
@@ -68,10 +70,21 @@
    "label": "If this app is uninstalled",
    "options": "\nBring files back to this server\nLeave files in SharePoint",
    "description": "What happens to attachments stored in SharePoint when the app is removed.<br><b>Bring files back to this server:</b> each file is downloaded back and its attachment works as before. Checks there is enough free disk space first, and stops if there is not.<br><b>Leave files in SharePoint:</b> nothing is downloaded; each attachment becomes a link to the file in SharePoint, which opens for people with access to the site.<br><b>Blank:</b> the uninstall stops and asks."
+  },
+  {
+   "fieldname": "grant_section",
+   "fieldtype": "Section Break",
+   "label": "Site Grant Script",
+   "collapsible": 1
+  },
+  {
+   "fieldname": "grant_script_html",
+   "fieldtype": "HTML",
+   "label": "Site Grant Script"
   }
  ],
  "links": [],
- "modified": "2026-10-09 00:00:00",
+ "modified": "2026-10-09 01:00:00",
  "modified_by": "Administrator",
  "module": "Frappe Microsoft 365",
  "name": "SharePoint Settings",
