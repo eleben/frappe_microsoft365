@@ -24,7 +24,7 @@
   tools and the site grant script; Microsoft Settings keeps only the capability tickbox.
 - The app's sidebar is shipped in both v16 formats: `<module>/sidebar/` (Frappe 16.4x and later)
   and `workspace_sidebar/` (earlier v16 releases), so every page is listed on either.
-- A SharePoint Mapping lists its DocType's folders, with *Add or Link Folder*; the sidebar's
+- A SharePoint Mapping lists its DocType's folders, with *Add Row* to create or link one; the sidebar's
   SharePoint section lists only the mappings.
 - Doctor: Document Storage checks, a *Test SharePoint Connection* that proves write access per
   mapping, and a *SharePoint Site Grant Script* that grants the app only the mapped sites.
