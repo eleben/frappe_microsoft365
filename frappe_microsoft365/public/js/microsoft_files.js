@@ -123,7 +123,7 @@ frappe.provide("frappe_microsoft365.files");
 				error: () =>
 					this.$body.html(
 						`<div class="text-muted small">${__(
-							"Could not read the SharePoint folder. SharePoint Settings > Test Connection says why.",
+							"Could not read the SharePoint folder. Microsoft Settings > Troubleshoot > Test SharePoint Connection says why.",
 						)}</div>`,
 					),
 			});
@@ -282,7 +282,29 @@ frappe.provide("frappe_microsoft365.files");
 		});
 	}
 
+	// Test SharePoint Connection: on SharePoint Settings and under Troubleshoot on Microsoft Settings.
+	function test_connection(frm) {
+		if (frm.is_dirty()) {
+			frappe.msgprint(__("Save first: the test uses the saved settings."));
+			return;
+		}
+		frappe.call({
+			method: "frappe_microsoft365.microsoft_files.test_connection",
+			freeze: true,
+			freeze_message: __("Signing in as the app and writing a test folder in each library…"),
+			callback: (r) => {
+				const result = r.message || {};
+				const findings = result.findings || [];
+				const counts = {};
+				findings.forEach((f) => (counts[f.status] = (counts[f.status] || 0) + 1));
+				frappe_microsoft365.show_findings(__("SharePoint Connection"), { findings, counts });
+				frm.reload_doc();
+			},
+		});
+	}
+
 	frappe_microsoft365.files.render_summary = render_summary;
+	frappe_microsoft365.files.test_connection = test_connection;
 
 	// A file is moved a few seconds after it is attached, by which time the sidebar already
 	// shows its old /private/files link. The server announces the move on the document's

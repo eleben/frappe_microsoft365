@@ -23,6 +23,11 @@ frappe.ui.form.on("Microsoft Settings", {
 		frm.add_custom_button(__("Exchange Setup Script"), () => powershell(), __("Troubleshoot"));
 
 		if (frm.doc.use_files) {
+			frm.add_custom_button(
+				__("Test SharePoint Connection"),
+				() => frappe_microsoft365.files.test_connection(frm),
+				__("Troubleshoot")
+			);
 			const field = frm.fields_dict.files_summary;
 			field && frappe_microsoft365.files.render_summary(field.$wrapper, { link: true });
 		}

@@ -1231,7 +1231,7 @@ def manual_setup_steps(settings=None):
 				"Document storage, for exactly the sites that were granted and nothing else in the "
 				"tenant — unlike Sites.ReadWrite.All, which would reach every site."
 			),
-			"verify": _("SharePoint Settings > Test Connection reports every mapping OK."),
+			"verify": _("Troubleshoot > Test SharePoint Connection reports every mapping OK."),
 			"doc": SITES_SELECTED_DOC,
 		},
 	]
@@ -1381,7 +1381,7 @@ def powershell_for_site_grant(client_id, site_urls, role="write"):
 	from frappe_microsoft365.microsoft_files import parse_site_url
 
 	lines = [
-		"# Grants the Frappe app access to the SharePoint sites mapped in Microsoft Settings.",
+		"# Grants the Frappe app access to the SharePoint sites in this site's SharePoint Mappings.",
 		"# Run as a SharePoint or Global administrator. Requires: Install-Module Microsoft.Graph.Sites",
 		'Connect-MgGraph -Scopes "Sites.FullControl.All"',
 		f'$appId = "{client_id or "<client id>"}"',

@@ -141,8 +141,8 @@ def handle_files(dry_run=False):
 	if failed:
 		frappe.throw(
 			"Uninstall stopped: {0} attachment(s) could not be handled, so removing the app now would "
-			"leave them unopenable here. Fix the cause (usually the connection: SharePoint Settings > "
-			"Test Connection) and run the uninstall again; files already handled stay that way.\n{1}".format(
+			"leave them unopenable here. Fix the cause (usually the connection: Microsoft Settings > "
+			"Troubleshoot) and run the uninstall again; files already handled stay that way.\n{1}".format(
 				len(failed), "\n".join(failed[:20])
 			)
 		)

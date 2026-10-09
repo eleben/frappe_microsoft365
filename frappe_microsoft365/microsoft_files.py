@@ -1519,7 +1519,7 @@ def _site_fix(message):
 	if "403" in message or "accessDenied" in message or "Forbidden" in message:
 		return _(
 			"The app has not been granted this site. Add the Sites.Selected application permission with "
-			"admin consent, then run SharePoint Settings > Actions > Site Grant Script as a SharePoint admin."
+			"admin consent, then run SharePoint Settings > Troubleshoot > Site Grant Script as a SharePoint admin."
 		)
 	if "404" in message or "itemNotFound" in message:
 		return _(

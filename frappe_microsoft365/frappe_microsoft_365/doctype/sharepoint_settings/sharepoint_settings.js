@@ -17,34 +17,18 @@ frappe.ui.form.on("SharePoint Settings", {
 			}
 			$status.empty();
 			frappe_microsoft365.files.render_summary($status);
-			frm.add_custom_button(__("Test Connection"), () => test_files(frm));
+			frm.add_custom_button(
+				__("Test SharePoint Connection"),
+				() => frappe_microsoft365.files.test_connection(frm),
+				__("Troubleshoot")
+			);
+			frm.add_custom_button(__("Site Grant Script"), () => site_grant_script(), __("Troubleshoot"));
 			frm.add_custom_button(__("Mappings"), () => frappe.set_route("List", "SharePoint Mapping"), __("Go to"));
 			frm.add_custom_button(__("Folders"), () => frappe.set_route("List", "SharePoint Folder"), __("Go to"));
 			frm.add_custom_button(__("Move Existing Attachments"), () => move_existing(frm), __("Actions"));
-			frm.add_custom_button(__("Site Grant Script"), () => site_grant_script(), __("Actions"));
 		});
 	},
 });
-
-function test_files(frm) {
-	if (frm.is_dirty()) {
-		frappe.msgprint(__("Save first: the test uses the saved settings."));
-		return;
-	}
-	frappe.call({
-		method: "frappe_microsoft365.microsoft_files.test_connection",
-		freeze: true,
-		freeze_message: __("Signing in as the app and writing a test folder in each library…"),
-		callback: (r) => {
-			const result = r.message || {};
-			const findings = result.findings || [];
-			const counts = {};
-			findings.forEach((f) => (counts[f.status] = (counts[f.status] || 0) + 1));
-			frappe_microsoft365.show_findings(__("SharePoint Connection"), { findings, counts });
-			frm.reload_doc();
-		},
-	});
-}
 
 function site_grant_script() {
 	frappe.call({
