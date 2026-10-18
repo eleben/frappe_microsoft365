@@ -760,7 +760,30 @@ def upload_file(file_name):
 		# Kept whether or not the disk copy is: links already handed out (a bookmark, an email,
 		# a form opened before the move) still say this URL, and redirect_moved_file follows it.
 		values["custom_microsoft_local_url"] = local_url
-	frappe.db.set_value("File", file_name, values, update_modified=False)
+	try:
+		frappe.db.set_value("File", file_name, values, update_modified=False)
+	except Exception as e:
+		# The upload worked but recording it did not. Count it as a failed attempt like any other,
+		# so the hourly retry gives up after MAX_ATTEMPTS instead of uploading the file again and
+		# again; the row still points at the copy on this server, so nothing is lost.
+		frappe.db.rollback(save_point="microsoft365_upload")
+		frappe.db.set_value(
+			"File",
+			file_name,
+			{
+				"custom_microsoft_status": FAILED,
+				"custom_microsoft_error": _(
+					"Uploaded to SharePoint but not recorded here: {0}. SharePoint copy: {1}"
+				).format(str(e)[:300], (item.get("webUrl") or item.get("id") or "")[:500]),
+				"custom_microsoft_attempts": attempts,
+			},
+			update_modified=False,
+		)
+		frappe.db.commit()  # nosemgrep
+		frappe.log_error(
+			title=_("Microsoft 365: file uploaded but not recorded"), message=f"File {file_name}: {e}"
+		)
+		return
 	# The row must point at SharePoint, durably, before the copy on disk is removed.
 	frappe.db.commit()  # nosemgrep
 
