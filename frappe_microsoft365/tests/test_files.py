@@ -417,6 +417,34 @@ class TestAppOnly(BaseTestCase):
 # --- eligibility and the upload job ---------------------------------------------------------
 
 
+class TestLongNames(FilesTestCase):
+	"""SharePoint addresses carry the folder path and file name, and can be long."""
+
+	def item(self, web_url):
+		return {"id": "ITEM-LONG", "webUrl": web_url, "parentReference": {"driveId": "DRIVE"}}
+
+	def test_a_long_sharepoint_address_is_recorded(self):
+		name = "1791969355895-request-for-quotation-for-supply-and-delivery-of-ict-laboratory-repair-materials.csv"
+		f = self.attach(name=name)
+		url = "https://contoso.sharepoint.com/sites/Sales/Shared%20Documents/Projects/" + "x" * 400
+		with patch.object(files, "_upload", return_value=self.item(url)):
+			files.upload_file(f.name)
+		f.reload()
+		self.assertEqual(f.custom_microsoft_status, files.STORED)
+		self.assertEqual(f.custom_microsoft_web_url, url)
+		self.assertTrue(f.custom_microsoft_local_url.endswith(name))
+
+	def test_an_upload_that_cannot_be_recorded_counts_as_a_failed_attempt(self):
+		f = self.attach()
+		with patch.object(files, "_upload", return_value=self.item("https://x/" + "y" * 70000)):
+			files.upload_file(f.name)
+		f.reload()
+		self.assertEqual(f.custom_microsoft_status, files.FAILED)
+		self.assertEqual(f.custom_microsoft_attempts, 1)
+		self.assertIn("not recorded", f.custom_microsoft_error)
+		self.assertTrue(f.file_url.startswith("/private/files/"))
+
+
 class TestUpload(FilesTestCase):
 	def test_new_attachment_is_queued(self):
 		f = self.attach()

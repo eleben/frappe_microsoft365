@@ -310,9 +310,10 @@ def create_file_custom_fields(only_definitions=False):
 			},
 			{
 				"fieldname": "custom_microsoft_web_url",
-				"fieldtype": "Data",
+				# Text, not Data: SharePoint addresses carry the whole folder path and file name
+				# and pass Data's 140 characters easily.
+				"fieldtype": "Small Text",
 				"label": "Open in SharePoint",
-				"options": "URL",
 				"insert_after": "custom_microsoft_status",
 				"read_only": 1,
 			},
@@ -347,6 +348,8 @@ def create_file_custom_fields(only_definitions=False):
 			{
 				"fieldname": "custom_microsoft_local_url",
 				"fieldtype": "Data",
+				# /private/files/ plus the file name, which can be long; still short enough to index.
+				"length": 700,
 				"label": "Original URL",
 				"insert_after": "custom_microsoft_item_id",
 				"read_only": 1,
