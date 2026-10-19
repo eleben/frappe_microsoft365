@@ -81,6 +81,7 @@ def configure(test, **overrides):
 		frappe.db.delete("SharePoint Mapping", {"name": MAPPED})
 		frappe.db.delete("SharePoint Mapping Role", {"parent": MAPPED})
 		frappe.db.delete("SharePoint Folder", {"parent": MAPPED})
+		files.sync_panel_fields(MAPPED, files.PANEL_HIDDEN)
 		files.clear_mapping_cache()
 		d = frappe.get_doc("Microsoft Settings")
 		d.update(before)
@@ -931,6 +932,61 @@ class TestMappingOverrides(FilesTestCase):
 		files.upload_file(f.name)
 		frappe.delete_doc("File", f.name, force=True)
 		self.assertIn("DELETE", [m for m, _p in self.graph.calls])
+
+
+class TestFilesPanel(FilesTestCase):
+	"""Where a mapped DocType's form shows Files in Microsoft 365."""
+
+	def panel_fields(self):
+		return sorted(
+			frappe.get_all(
+				"Custom Field",
+				filters={"dt": MAPPED, "fieldname": ["in", files.PANEL_FIELDS]},
+				pluck="fieldname",
+			)
+		)
+
+	def set_mode(self, mode):
+		mapping = frappe.get_doc("SharePoint Mapping", MAPPED)
+		mapping.files_panel = mode
+		mapping.save()
+
+	def test_own_tab_is_the_default_and_adds_a_files_tab(self):
+		self.assertEqual(frappe.db.get_value("SharePoint Mapping", MAPPED, "files_panel"), files.PANEL_TAB)
+		self.assertEqual(self.panel_fields(), sorted(files.PANEL_FIELDS))
+		meta = frappe.get_meta(MAPPED)
+		self.assertEqual(meta.get_field(files.PANEL_TAB_FIELD).fieldtype, "Tab Break")
+		self.assertEqual(meta.fields[-1].fieldname, files.PANEL_HTML_FIELD)
+
+	def test_top_of_form_and_hidden_take_the_tab_away(self):
+		for mode in (files.PANEL_TOP, files.PANEL_HIDDEN):
+			self.set_mode(mode)
+			self.assertEqual(self.panel_fields(), [], mode)
+		self.set_mode(files.PANEL_TAB)
+		self.assertEqual(self.panel_fields(), sorted(files.PANEL_FIELDS))
+
+	def test_disabling_or_deleting_the_mapping_takes_the_tab_away(self):
+		mapping = frappe.get_doc("SharePoint Mapping", MAPPED)
+		mapping.enabled = 0
+		mapping.save()
+		self.assertEqual(self.panel_fields(), [])
+		mapping.enabled = 1
+		mapping.save()
+		self.assertEqual(self.panel_fields(), sorted(files.PANEL_FIELDS))
+		frappe.delete_doc("SharePoint Mapping", MAPPED, force=True)
+		self.assertEqual(self.panel_fields(), [])
+
+	def test_the_boot_says_where_each_doctype_shows_the_panel(self):
+		self.set_mode(files.PANEL_HIDDEN)
+		boot = frappe._dict()
+		files.boot_session(boot)
+		self.assertEqual(boot.microsoft365_files_panel.get(MAPPED), files.PANEL_HIDDEN)
+		self.assertIn(MAPPED, boot.microsoft365_files_doctypes)
+
+	def test_uninstall_removes_the_tab_too(self):
+		from frappe_microsoft365.setup import app_custom_fields
+
+		self.assertTrue(set(files.PANEL_FIELDS) <= set(app_custom_fields().get(MAPPED, [])))
 
 
 class TestFoldersPatch(FilesTestCase):

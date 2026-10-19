@@ -43,6 +43,13 @@ frees disk space, which matters on hosted plans with a fixed quota (Frappe Cloud
 4. The record shows a **Files in Microsoft 365** panel. It lists everything in the folder,
    including subfolders and files added from Teams or SharePoint, and has an **Open in
    SharePoint** button.
+   Where it appears is set per mapping in **Files panel on the form**: **Own tab** (the default)
+   puts it on a **Files** tab at the end of the form, so the record's main tab looks like any
+   other; **Top of form** shows it above the first tab's fields; **Hidden** leaves it out, and
+   attachments still work as normal (with On demand, folders are then added from the mapping's
+   Folders table). The Files tab is a Tab Break and an HTML field the app adds to that DocType
+   and removes again when the setting changes, the mapping is disabled or deleted, or the app
+   is uninstalled. On its own tab the folder is read only when the tab is opened.
 5. Files open through Frappe, so anyone who can read the record can open its files, whether or
    not they have a SharePoint licence. People with SharePoint access can also use the folder
    directly.

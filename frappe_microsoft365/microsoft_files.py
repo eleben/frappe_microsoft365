@@ -153,7 +153,18 @@ MAPPING_FIELDS = [
 	"drive_id",
 	"keep_local_copy",
 	"delete_remote",
+	"files_panel",
 ]
+
+# Where a mapped DocType's form shows the "Files in Microsoft 365" panel (SharePoint Mapping >
+# Files panel). Own tab puts it on a Files tab at the end of the form, so the record's main tab
+# looks like any other; the tab is a Tab Break plus an HTML field this app adds to that DocType.
+PANEL_TAB = "Own tab"
+PANEL_TOP = "Top of form"
+PANEL_HIDDEN = "Hidden"
+PANEL_TAB_FIELD = "custom_microsoft365_files_tab"
+PANEL_HTML_FIELD = "custom_microsoft365_files"
+PANEL_FIELDS = (PANEL_TAB_FIELD, PANEL_HTML_FIELD)
 
 
 def _mappings():
@@ -239,13 +250,66 @@ def mapped_doctype_query(
 	return [[d] for d in names[start : start + page_len]]
 
 
+def panel_modes():
+	"""{DocType: Own tab | Top of form | Hidden} for every enabled mapping."""
+	if not files_enabled():
+		return {}
+	return {row.reference_doctype: row.get("files_panel") or PANEL_TAB for row in _mappings() if row.enabled}
+
+
 def boot_session(bootinfo):
-	"""Tell the desk which DocTypes get the "Files in Microsoft 365" panel."""
+	"""Tell the desk which DocTypes get the "Files in Microsoft 365" panel, and where."""
 	try:
-		bootinfo.microsoft365_files_doctypes = mapped_doctypes()
+		bootinfo.microsoft365_files_panel = panel_modes()
+		bootinfo.microsoft365_files_doctypes = list(bootinfo.microsoft365_files_panel)
 	except Exception:
 		# A broken settings row must never stop the desk from loading.
+		bootinfo.microsoft365_files_panel = {}
 		bootinfo.microsoft365_files_doctypes = []
+
+
+def sync_panel_fields(doctype, mode):
+	"""Add the Files tab to a DocType's form for Own tab, and take it away for anything else.
+
+	Layout only: a Tab Break and an HTML field hold no data, so removing them loses nothing.
+	"""
+	from frappe.custom.doctype.custom_field.custom_field import create_custom_fields
+
+	if not doctype or not frappe.db.exists("DocType", doctype):
+		return
+	existing = frappe.get_all(
+		"Custom Field", filters={"dt": doctype, "fieldname": ["in", PANEL_FIELDS]}, pluck="name"
+	)
+	if mode != PANEL_TAB:
+		for name in existing:
+			frappe.delete_doc("Custom Field", name, ignore_permissions=True, force=True)
+		if existing:
+			frappe.clear_cache(doctype=doctype)
+		return
+	if len(existing) == len(PANEL_FIELDS):
+		return
+	fields = [f for f in frappe.get_meta(doctype).fields if f.fieldname not in PANEL_FIELDS]
+	last = fields[-1].fieldname if fields else None
+	create_custom_fields(
+		{
+			doctype: [
+				{
+					"fieldname": PANEL_TAB_FIELD,
+					"fieldtype": "Tab Break",
+					"label": "Files",
+					"insert_after": last,
+				},
+				{
+					"fieldname": PANEL_HTML_FIELD,
+					"fieldtype": "HTML",
+					"label": "Files in Microsoft 365",
+					"insert_after": PANEL_TAB_FIELD,
+				},
+			]
+		},
+		ignore_validate=True,
+	)
+	frappe.clear_cache(doctype=doctype)
 
 
 # --- names and paths ---------------------------------------------------------------------
