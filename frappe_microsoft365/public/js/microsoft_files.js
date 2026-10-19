@@ -22,11 +22,22 @@ frappe.provide("frappe_microsoft365.files");
 		return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
 	}
 
+	// Graph times are UTC ("2026-10-18T22:01:08Z"). Shown as plain text ("1 d", "3 h"), with the
+	// full local time on hover. Not comment_when: that returns HTML, and these cells are escaped.
+	function system_time(iso) {
+		const tz = (frappe.boot.time_zone && frappe.boot.time_zone.system) || frappe.sys_defaults.time_zone;
+		const m = window.moment && moment.tz && tz ? moment.utc(iso).tz(tz) : null;
+		return m ? m.format("YYYY-MM-DD HH:mm:ss") : iso.replace("T", " ").replace("Z", "").slice(0, 19);
+	}
+
 	function when(iso) {
 		if (!iso) return "";
-		return frappe.datetime.comment_when
-			? frappe.datetime.comment_when(iso.replace("T", " ").replace("Z", ""), true)
-			: iso.slice(0, 10);
+		const local = system_time(iso);
+		return frappe.datetime.prettyDate ? frappe.datetime.prettyDate(local, true) : local.slice(0, 10);
+	}
+
+	function when_title(iso) {
+		return iso ? frappe.datetime.str_to_user(frappe.datetime.convert_to_user_tz(system_time(iso))) : "";
 	}
 
 	function open_url(frm, item_id, download) {
@@ -185,7 +196,7 @@ frappe.provide("frappe_microsoft365.files");
 					<td style="width:24px">${icon}</td>
 					<td>${link}${tag}</td>
 					<td class="text-muted small text-nowrap">${esc(item.modified_by || "")}</td>
-					<td class="text-muted small text-nowrap">${esc(when(item.modified))}</td>
+					<td class="text-muted small text-nowrap" title="${esc(when_title(item.modified))}">${esc(when(item.modified))}</td>
 					<td class="text-muted small text-right text-nowrap">${extra}</td>
 					<td style="width:24px" class="text-right">${download}</td>
 				</tr>`;
