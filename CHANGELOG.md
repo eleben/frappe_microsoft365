@@ -37,6 +37,8 @@
   retried, and uploaded again, every hour.
 - Fix: the Files in Microsoft 365 panel showed raw HTML in the Modified column; it now shows a
   short relative time ("1 d") with the full local time on hover.
+- The desk scripts are now one hashed bundle (`microsoft365.bundle.js`), so browsers pick up a
+  new version right after a deploy instead of keeping a cached copy.
 - Doctor: Document Storage checks, a *Test SharePoint Connection* that proves write access per
   mapping, and a *SharePoint Site Grant Script* that grants the app only the mapped sites.
 - *Move Existing Attachments* queues files attached before a DocType was mapped. Optional
