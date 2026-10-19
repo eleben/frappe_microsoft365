@@ -39,6 +39,8 @@ capability, with the changes listed under *Changed from the original*.
 - Fix: long SharePoint addresses (deep folders, long file names) no longer fail to record after
   upload; an upload that cannot be recorded now counts as a failed attempt instead of being
   retried, and uploaded again, every hour.
+- Fix: the Files in Microsoft 365 panel showed raw HTML in the Modified column; it now shows a
+  short relative time ("1 d") with the full local time on hover.
 - Doctor: Document Storage checks, a *Test SharePoint Connection* that proves write access per
   mapping, and a *SharePoint Site Grant Script* that grants the app only the mapped sites.
 - *Move Existing Attachments* queues files attached before a DocType was mapped. Optional
