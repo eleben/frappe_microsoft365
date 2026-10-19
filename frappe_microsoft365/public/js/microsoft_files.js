@@ -1,8 +1,8 @@
 // "Files in Microsoft 365" — the SharePoint folder of a record, shown on its form.
 //
 // Loaded on every desk page (app_include_js) because which DocTypes are mapped is a setting,
-// not code: the list arrives in the boot (frappe.boot.microsoft365_files_doctypes) and the
-// panel draws itself only on those forms. Everything it shows comes from whitelisted methods
+// not code: the boot says which DocTypes are mapped and where each shows the panel
+// (frappe.boot.microsoft365_files_panel: Own tab, Top of form or Hidden). Everything it shows comes from whitelisted methods
 // that check the user can read the record; ids in the page are never trusted on their own.
 
 frappe.provide("frappe_microsoft365.files");
@@ -11,8 +11,22 @@ frappe.provide("frappe_microsoft365.files");
 	const esc = (s) => frappe.utils.escape_html(s == null ? "" : String(s));
 	const METHOD = "frappe_microsoft365.microsoft_files";
 
-	function mapped(doctype) {
-		return (frappe.boot.microsoft365_files_doctypes || []).includes(doctype);
+	const TAB = "Own tab";
+	const TOP = "Top of form";
+	const HIDDEN = "Hidden";
+	const TAB_FIELD = "custom_microsoft365_files_tab";
+	const HTML_FIELD = "custom_microsoft365_files";
+
+	// Where this DocType shows the panel, or null when it is not mapped.
+	function panel_mode(doctype) {
+		const modes = frappe.boot.microsoft365_files_panel;
+		if (modes) return modes[doctype] || null;
+		// A boot from before the setting existed: the panel sat at the top.
+		return (frappe.boot.microsoft365_files_doctypes || []).includes(doctype) ? TOP : null;
+	}
+
+	function files_tab(frm) {
+		return (frm.layout && frm.layout.tabs || []).find((t) => t.df && t.df.fieldname === TAB_FIELD);
 	}
 
 	function size(bytes) {
@@ -51,29 +65,59 @@ frappe.provide("frappe_microsoft365.files");
 	}
 
 	class Panel {
-		constructor(frm) {
+		constructor(frm, mode) {
 			this.frm = frm;
+			this.mode = mode;
 			this.trail = []; // [{id, name}] subfolders opened from the record's folder
+			this.tab = mode === TAB ? files_tab(frm) : null;
 			this.$body = this.mount();
-			this.load();
+			// Show files is there from the start; Create folder and Open in SharePoint join it
+			// once the folder has been read (toolbar()).
+			frm.remove_custom_button(__("Show files"), __("SharePoint"));
+			frm.add_custom_button(__("Show files"), () => this.show(), __("SharePoint"));
+			if (this.tab && !this.tab.is_active()) {
+				// On its own tab the folder is read when the tab is first opened, so opening a
+				// record never waits on SharePoint for a list nobody has asked to see.
+				this.tab.tab_link.find(".nav-link").one("click", () => this.load());
+			} else {
+				this.load();
+			}
 		}
 
-		// Its own block at the top of the form's first tab. Not frm.dashboard: on a DocType
-		// with a Connections tab (Project, Customer, …) Frappe puts the dashboard inside that
-		// tab, where nobody looks for files.
+		// Own tab: inside the Files tab this app adds to the DocType. Top of form: its own
+		// block at the top of the first tab. Not frm.dashboard: on a DocType with a Connections
+		// tab (Project, Customer, …) Frappe puts the dashboard inside that tab.
 		mount() {
 			const frm = this.frm;
 			frm.$wrapper.find(".microsoft365-files").remove();
+			const on_tab = !!(this.tab && frm.fields_dict[HTML_FIELD]);
 			const $section = $(`
-				<div class="microsoft365-files" style="padding:12px var(--padding-md, 15px);border-bottom:1px solid var(--border-color)">
-					<div style="font-weight:600;margin-bottom:6px">${__("Files in Microsoft 365")}</div>
+				<div class="microsoft365-files" style="${
+					on_tab ? "" : "padding:12px var(--padding-md, 15px);border-bottom:1px solid var(--border-color)"
+				}">
+					${on_tab ? "" : `<div style="font-weight:600;margin-bottom:6px">${__("Files in Microsoft 365")}</div>`}
 					<div class="microsoft365-files-body"></div>
 				</div>`);
-			const tabs = frm.layout && frm.layout.tabs;
-			const target =
-				tabs && tabs.length ? tabs[0].wrapper : frm.layout.wrapper.find(".form-page");
-			$(target).prepend($section);
+			if (on_tab) {
+				frm.fields_dict[HTML_FIELD].$wrapper.empty().append($section);
+			} else {
+				const tabs = frm.layout && frm.layout.tabs;
+				const target =
+					tabs && tabs.length ? tabs[0].wrapper : frm.layout.wrapper.find(".form-page");
+				$(target).prepend($section);
+			}
 			return $section.find(".microsoft365-files-body");
+		}
+
+		show() {
+			if (this.tab) {
+				this.tab.set_active();
+				if (!this.loaded) this.load();
+				return;
+			}
+			const tabs = this.frm.layout.tabs;
+			tabs && tabs.length && tabs[0].set_active();
+			this.frm.$wrapper.find(".microsoft365-files")[0]?.scrollIntoView({ behavior: "smooth" });
 		}
 
 		// The same actions in the toolbar, so they are found without scrolling to the panel.
@@ -93,16 +137,7 @@ frappe.provide("frappe_microsoft365.files");
 					group,
 				);
 			}
-			frm.add_custom_button(
-				__("Show files"),
-				() => {
-					frm.layout.tabs && frm.layout.tabs.length && frm.layout.tabs[0].set_active();
-					frm.$wrapper
-						.find(".microsoft365-files")[0]
-						?.scrollIntoView({ behavior: "smooth" });
-				},
-				group,
-			);
+			frm.add_custom_button(__("Show files"), () => this.show(), group);
 		}
 
 		create() {
@@ -125,6 +160,7 @@ frappe.provide("frappe_microsoft365.files");
 		}
 
 		load() {
+			this.loaded = true;
 			const subfolder = this.trail.length ? this.trail[this.trail.length - 1].id : null;
 			this.$body.html(`<div class="text-muted small">${__("Loading…")}</div>`);
 			frappe.call({
@@ -340,8 +376,17 @@ frappe.provide("frappe_microsoft365.files");
 	});
 
 	$(document).on("form-refresh", (_e, frm) => {
-		if (!frm || frm.is_new() || !mapped(frm.doctype)) return;
-		// The dashboard is rebuilt on every refresh, taking any earlier panel with it.
-		frm.microsoft365_files_panel = new Panel(frm);
+		if (!frm) return;
+		const mode = panel_mode(frm.doctype);
+		// The Files tab only means something on a saved record whose DocType shows it there.
+		// Hidden through its df, so Frappe's own tab refreshes keep it that way.
+		const tab = files_tab(frm);
+		if (tab) {
+			tab.df.hidden = mode === TAB && !frm.is_new() ? 0 : 1;
+			tab.refresh();
+		}
+		if (frm.is_new() || !mode || mode === HIDDEN) return;
+		// Rebuilt on every refresh, as the form redraws its layout.
+		frm.microsoft365_files_panel = new Panel(frm, mode);
 	});
 })();

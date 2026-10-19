@@ -376,4 +376,12 @@ def app_custom_fields():
 	for definitions in (create_event_custom_fields(True), create_file_custom_fields(True)):
 		for doctype, fields in definitions.items():
 			out.setdefault(doctype, []).extend(f["fieldname"] for f in fields)
+	# The Files tab added to mapped DocTypes (SharePoint Mapping > Files panel: Own tab).
+	from frappe_microsoft365.microsoft_files import PANEL_FIELDS
+
+	if frappe.db.table_exists("Custom Field"):
+		for row in frappe.get_all(
+			"Custom Field", filters={"fieldname": ["in", PANEL_FIELDS]}, fields=["dt", "fieldname"]
+		):
+			out.setdefault(row.dt, []).append(row.fieldname)
 	return out

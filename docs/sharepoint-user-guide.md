@@ -34,7 +34,7 @@ Attach files exactly as you always have; storage in SharePoint happens on its ow
 
 **The Files in Microsoft 365 panel**
 
-On records of a mapped type, a **Files in Microsoft 365** panel sits near the top of the form. It lists everything in the record's SharePoint folder, including files and subfolders added from Teams.
+On records of a mapped type, a **Files in Microsoft 365** panel is on the **Files** tab at the end of the form (your administrator may have moved it to the top of the form, or turned it off). It lists everything in the record's SharePoint folder, including files and subfolders added from Teams.
 
 - Click a file name to open it, or the download arrow to save it.
 - Click a folder to go into it; use the path at the top to go back.
@@ -122,6 +122,7 @@ Each mapping is its own record, named after its record type, so a type can only 
 | Group record folders in a base folder | On: record folders go inside the Base Folder. Off: they go straight into the library |
 | Base Folder | The folder that holds the record folders, created if missing. Nested paths like `Projects/2026` work |
 | Folder Name Pattern | How each record's folder is named. `{name}` by default; any field works, e.g. `{name} - {customer}`. Characters SharePoint refuses are replaced |
+| Files panel on the form | Where records show *Files in Microsoft 365*: **Own tab** (a Files tab at the end of the form; default), **Top of form**, or **Hidden** |
 
 **Folder Creation** decides how much moves to SharePoint:
 

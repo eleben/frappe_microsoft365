@@ -43,6 +43,8 @@ capability, with the changes listed under *Changed from the original*.
   short relative time ("1 d") with the full local time on hover.
 - The desk scripts are now one hashed bundle (`microsoft365.bundle.js`), so browsers pick up a
   new version right after a deploy instead of keeping a cached copy.
+- *Files panel on the form* per mapping: **Own tab** (default, a Files tab at the end of the form,
+  read only when opened), **Top of form**, or **Hidden**.
 - Doctor: Document Storage checks, a *Test SharePoint Connection* that proves write access per
   mapping, and a *SharePoint Site Grant Script* that grants the app only the mapped sites.
 - *Move Existing Attachments* queues files attached before a DocType was mapped. Optional
